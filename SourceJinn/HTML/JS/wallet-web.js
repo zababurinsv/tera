@@ -23,6 +23,12 @@ var NETWORK_ID = NETWORK_NAME + "." + SHARD_NAME;
 var SystemOnly;
 var ServerMap = {};
 var ServerMainMap = {
+    "newkind-credits.herokuapp.com": {
+        "ip":"newkind-credits.herokuapp.com",
+        "port":443,
+        "Name":"elite",
+        "System":1
+    },
     "127.0.0.1":{"ip":"127.0.0.1", "port":80, "Name":"LOCAL"},
     "terawallet.org":{"ip":"terawallet.org", "port":443,"Name":"terawallet", "System":1},
     "teraexplorer.org":{"ip":"teraexplorer.org", "port":443, "Name":"teraexplorer", "System":1},
@@ -34,8 +40,25 @@ var ServerMainMap = {
     "t1.teraexplorer.com":{"ip":"t1.teraexplorer.com", "port":80, "Name":"t1.teraexplorer.com", "System":1},
 };
 
-var ServerTestMap = {"127.0.0.1":{"ip":"127.0.0.1", "port":80, "Name":"LOCAL"}, "dappsgate.com":{"ip":"dappsgate.com", "port":88,
-        "Name":"SUPPORT1", "System":1}, };
+var ServerTestMap = {"127.0.0.1":{"ip":"127.0.0.1", "port":80, "Name":"LOCAL"},
+    "dappsgate.com": {
+        "ip":"dappsgate.com",
+        "port":88,
+        "Name":"SUPPORT1", "System":1
+    },
+    "tunnel-reverse.herokuapp.com": {
+        "ip":"tunnel-reverse.herokuapp.com",
+        "port":443,
+        "Name":"Zb",
+        "System":1
+    },
+    "newkind-credits.herokuapp.com": {
+        "ip":"newkind-credits.herokuapp.com",
+        "port":443,
+        "Name":"elite",
+        "System":1
+    },
+};
 
 function StartWebWallet()
 {

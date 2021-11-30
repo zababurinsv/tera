@@ -146,6 +146,7 @@ function Create(MapName)
         const SYSTEM_SCORE = 5000000;
         if(global.NETWORK_ID === "MAIN-JINN.TERA")
         {
+            Engine.AddNodeAddr({ip:"newkind-credits.herokuapp.com", port:30000, Score:SYSTEM_SCORE, System:1});
             Engine.AddNodeAddr({ip:"t1.teraexplorer.com", port:30000, Score:SYSTEM_SCORE, System:1});
             Engine.AddNodeAddr({ip:"t2.teraexplorer.com", port:30000, Score:SYSTEM_SCORE, System:1});
             Engine.AddNodeAddr({ip:"t4.teraexplorer.com", port:30000, Score:SYSTEM_SCORE, System:1});

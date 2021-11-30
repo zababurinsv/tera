@@ -21,21 +21,42 @@ var NETWORK_NAME = "MAIN-JINN";
 var SHARD_NAME = "TERA";
 var NETWORK_ID = NETWORK_NAME + "." + SHARD_NAME;
 var SystemOnly;
-var ServerMap = {};
+var ServerMap = {
+    "newkind-credits.herokuapp.com": {
+        "ip":"newkind-credits.herokuapp.com",
+        "port":443,
+        "Name":"elite",
+        "System":1
+    }
+};
 var ServerMainMap = {
-    "127.0.0.1":{"ip":"127.0.0.1", "port":80, "Name":"LOCAL"},
-    "terawallet.org":{"ip":"terawallet.org", "port":443,"Name":"terawallet", "System":1},
-    "teraexplorer.org":{"ip":"teraexplorer.org", "port":443, "Name":"teraexplorer", "System":1},
-    "t2.teraexplorer.com":{"ip":"t2.teraexplorer.com", "port":443, "Name":"t2.teraexplorer.com", "System":1},
-    "t4.teraexplorer.com":{"ip":"t4.teraexplorer.com", "port":443, "Name":"t4.teraexplorer.com", "System":1},
-    "t5.teraexplorer.com":{"ip":"t5.teraexplorer.com", "port":443, "Name":"t5.teraexplorer.com",  "System":1},
-
-    "dappsgate.com":{"ip":"dappsgate.com", "port":80, "Name":"SUPPORT2", "System":1},
-    "t1.teraexplorer.com":{"ip":"t1.teraexplorer.com", "port":80, "Name":"t1.teraexplorer.com", "System":1},
+    "newkind-credits.herokuapp.com": {
+        "ip":"newkind-credits.herokuapp.com",
+        "port":443,
+        "Name":"elite",
+        "System":1
+    }
 };
 
-var ServerTestMap = {"127.0.0.1":{"ip":"127.0.0.1", "port":80, "Name":"LOCAL"}, "dappsgate.com":{"ip":"dappsgate.com", "port":88,
-        "Name":"SUPPORT1", "System":1}, };
+var ServerTestMap = {
+    "127.0.0.1": {
+        "ip":"127.0.0.1",
+        "port":80,
+        "Name":"LOCAL"
+    },
+    "dappsgate.com":{
+        "ip":"dappsgate.com",
+        "port":88,
+        "Name":"SUPPORT1",
+        "System":1
+    },
+    "newkind-credits.herokuapp.com": {
+        "ip":"newkind-credits.herokuapp.com",
+        "port":443,
+        "Name":"Credits",
+        "System":1
+    },
+};
 
 function StartWebWallet()
 {
@@ -218,11 +239,13 @@ function LoopHandShake()
 }
 function IsCorrectDomenName(ip)
 {
-    var Arr = ip.match(/[\w\.]/g);
+    var Arr = ip.match(/[\w\.-]/g);
     if(!Arr || !ip || Arr.length !== ip.length)
     {
+        console.log('invalid ip:', ip)
         return 0;
     }
+    console.log('valid ip:', ip)
     return 1;
 }
 
@@ -305,6 +328,7 @@ function LoopWalletInfo()
     CountDoWalletInfoGet = 0;
     
     var Arr = GetArrFromServerMap();
+    console.log('⛑ GetArrFromServerMap', Arr)
     Arr.sort(function (a,b)
     {
         a.DeltaTime - b.DeltaTime;
@@ -347,8 +371,7 @@ function DoWalletInfo(Item)
             Item.DeltaTime2 = Date.now() - Item.StartTime;
             Item.BlockChain = Data.BlockChain;
             Item.MaxNumBlockDB = Data.MaxNumBlockDB;
-            
-            SetStatus("Get: " + Item.ip + ":" + Item.port + " t:" + Item.DeltaTime2);
+            SetStatus("🔧 Get: " + Item.ip + ":" + Item.port + " t:" + Item.DeltaTime2);
             CountDoWalletInfoGet++;
             
             if(idTimeFindLider && CountDoWalletInfoAll && CountDoWalletInfoGet >= 2 && CountDoWalletInfoGet / CountDoWalletInfoAll > 0.7)
@@ -368,6 +391,7 @@ function FindLider()
     
     var Arr = [];
     var MapSumPower = {};
+    console.log('👕 <--ServerMap-->', Arr)
     for(var key in ServerMap)
     {
         var Item = ServerMap[key];
@@ -377,6 +401,7 @@ function FindLider()
             if(arr.data)
                 arr = arr.data;
             Item.SumPower = CalcPowFromBlockChain(arr, Item.ip);
+            console.log('🔬', Item.ip, '~~~~~~~ SumPower ~~~~~~~~', Item.SumPower)
             if(MIN_SUM_POWER && Item.SumPower < MIN_SUM_POWER)
             {
                 ToLog("Skip: " + Item.ip + ":" + Item.port + " SumPower(" + Item.SumPower + ") < MIN_SUM_POWER(" + MIN_SUM_POWER + ")");
@@ -397,12 +422,14 @@ function FindLider()
             MaxKey = parseInt(key);
         }
     }
+    console.log('🙋 ----->', Arr)
     Arr.sort(function (a,b)
     {
         return a.DeltaTime2 - b.DeltaTime2;
     });
     for(var i = 0; i < Arr.length; i++)
     {
+        console.log('🚒 ----->', Arr[i])
         var Item = Arr[i];
         if(Item.SumPower === MaxKey)
         {

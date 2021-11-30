@@ -11,6 +11,7 @@ require("./core/update-net");
 
 
 var Arr=[
+    {num:0,ip:"https://newkind-credits.herokuapp.com"},
     {num:0,ip:"https://t1.teraexplorer.com"},
     {num:0,ip:"https://t2.teraexplorer.com"},
     {num:0,ip:"https://t4.teraexplorer.com"},

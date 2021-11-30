@@ -13,12 +13,12 @@
     "cryptomessenger"
   ],
   "scripts": {
-    "main:node": "cd Source && node set httpport:8080 password:gtFghRhkT",
+    "main:node": "cd Source && node set httpport:8080 password:somePassword",
     "main:run": "cd Source && pm2 start run-node.js --name node-W",
     "main:stop": "cd Source && pm2 stop run-node.js --name node-W",
     "main:restart": "cd Source && pm2 restart run-node.js --name node-W",
     "main:delete": "cd Source && pm2 delete run-node.js --name node-W",
-    "test:node": "cd SourceJinn && node set httpport:8800 password:gtFghRhkT",
+    "test:node": "cd SourceJinn && node set httpport:8800 password:somePassword",
     "test:run": "cd SourceJinn && pm2 start run-jinn.js --name node-T",
     "test:stop": "cd SourceJinn && pm2 stop run-jinn.js  --name node-T",
     "test:restart": "cd SourceJinn && pm2 restart run-jinn.js  --name node-T",
