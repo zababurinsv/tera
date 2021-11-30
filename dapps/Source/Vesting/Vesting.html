@@ -1,0 +1,303 @@
+<head>
+    <link type="text/css" rel="stylesheet" href="/file/70172057/0"/>
+    <script src="/file/70172078/0"></script>
+</head>
+
+
+<script>
+    var SaveIdArr=["idAccountCheck","idUser"];
+    function SaveValues()
+    {
+        SaveToStorageByArr(SaveIdArr);
+    }
+    function LoadValues()
+    {
+        LoadFromStorageByArr(SaveIdArr,function ()
+        {
+            UpdateFillUser();
+        });
+    }
+
+    function UpdateFillUser()
+    {
+        var Arr=[];
+        for(var i=0;i<USER_ACCOUNT.length;i++)
+        {
+            var Item=USER_ACCOUNT[i];
+            var Value={value:Item.Num, text:Item.Num+"."+Item.Name+"  "+SUM_TO_STRING(Item.Value,Item.Currency,1)};
+            Arr.push(Value);
+        }
+        FillSelect("idUser",Arr);
+    }
+    window.addEventListener('Init',function ()
+    {
+        LoadValues();
+    });
+    window.addEventListener('UpdateInfo',UpdateFillUser);
+</script>
+
+
+<script>
+
+    window.addEventListener('Init',function ()
+    {
+        //CheckInstall();
+        UpdateInfo();
+        $("idApp").innerHTML=""+SMART.Num+"."+SMART.Name;
+    });
+
+    window.addEventListener('UpdateInfo',UpdateInfo);
+    window.addEventListener('Event',function(e)
+    {
+        var Data=e.detail;
+        if(Data.Error)
+            SetError(Data.Description);
+        else
+        if(USER_ACCOUNT_MAP[Data.Account])
+        {
+
+            SetStatus("OK: "+Data.Description+" account: "+Data.Account);
+            UpdateInfo();
+        }
+    });
+    function UpdateInfo()
+    {
+        $("idFreezeDate").innerText=CalcDate();
+        $("idFreezeBlock").innerText=INFO.CurBlockNum+ParseNum($("idBlock").value);
+
+        var Account=USER_ACCOUNT_MAP[$("idUser").value];
+        if(Account && Account.SmartState)
+        {
+            SetVisibleBlock("idState1",Account.SmartState.BlockTo);
+
+            $("idStateBlock").innerText=Account.SmartState.BlockTo;
+            $("idStateValue").innerText=FLOAT_FROM_COIN(Account.SmartState.ValueFreeze);
+        }
+        else
+        {
+            $("idStateBlock").innerText="";
+            $("idStateValue").innerText="";
+            SetVisibleBlock("idState1",0);
+        }
+    }
+
+    function CalcDate()
+    {
+        var D=new Date();
+        D.setFullYear(D.getFullYear() + ParseNum($("idYear").value));
+        D.setMonth(D.getMonth() + ParseNum($("idMonth").value));
+        D.setDate(D.getDate() + ParseNum($("idDay").value));
+        return D;
+    }
+
+    function Freeze(Mode)
+    {
+        var Account=USER_ACCOUNT_MAP[$("idUser").value];
+        if(!Account)
+        {
+            SetError("Err: Choose Account");
+            return 0;
+        }
+        var DeltaBlockNum;
+        if(Mode==="Date")
+        {
+            var D=new Date();
+            DeltaBlockNum=Math.floor((CalcDate()-D)/CONSENSUS_PERIOD_TIME);
+        }
+        else
+        {
+            DeltaBlockNum=ParseNum($("idBlock").value);
+        }
+        var Sum=$("idValueFreeze").value;
+        if(DeltaBlockNum>0 && Sum>0)
+        {
+            var BlockTo=INFO.CurBlockNum+DeltaBlockNum;
+            var ValueFreeze=COIN_FROM_FLOAT(Sum);
+            SendCall(Account.Num,"Freeze",{BlockTo:BlockTo,ValueFreeze:ValueFreeze},Account.Num);
+        }
+        else
+        {
+            SetError("Error params");
+        }
+    }
+
+    function ReadAccInfo()
+    {
+        $("idAccInfo").innerText="";
+        var AccNum=+$("idAccountCheck").value;
+
+        GetAccountList({StartNum:AccNum,CountNum:1},function(Err,Arr)
+        {
+            if(Err || !Arr || !Arr.length)
+                return;
+
+            var Item=Arr[0];
+            if(!Item)
+                return;
+            var State=Item.SmartState;
+            if(!State)
+                return;
+
+
+            var Str=DateFromBlock(State.BlockTo);
+            $("idAccInfo").innerText="Freeze to block: "+State.BlockTo+" ("+Str+")\nFreeze amount: "+FLOAT_FROM_COIN(State.ValueFreeze);
+
+
+        })
+    }
+
+
+</script>
+
+
+
+
+<style type="text/css">
+    body
+    {
+        background: linear-gradient(to bottom right, #41A0A8, #41A894);
+        color: black;
+    }
+    .radius
+    {
+        border-radius: 4px;
+        max-height: 32px;
+        height: 32px;
+    }
+    button.radius
+    {
+        cursor: pointer;
+        color:white;
+        background-color: #337ab7;
+        border-color: #2e6da4;
+        width: 100px;
+    }
+    input.radius
+    {
+        height: 24px;
+    }
+
+    table
+    {
+        border-collapse: collapse;
+        width: 90%;
+        max-width:280px;
+        margin: 10px;
+        padding: 10px;
+    }
+
+    item
+    {
+        width: 120px;
+    }
+    .freezehead
+    {
+        font-weight: bold;
+        margin: 20px 20px 10px 20px;
+    }
+
+    td
+    {
+        padding:5px;
+        margin:0;
+    }
+
+    #idAccInfo
+    {
+        font-weight: bold;
+        font-size: 16px;
+        margin: 20px 5px;
+        text-align:left;
+
+    }
+
+</style>
+
+<DIV align='center' id="idMain" style="display:none">
+    <DIV align='center' style="max-width: 400px;">
+
+        <DIV id="idApp" style="width: 100%;height: 40px;font-size: x-large">FREEZE</DIV>
+
+        <menu>
+            <item data-ref="m1" id="Freeze">
+                FREEZE
+            </item>
+
+            <item data-ref="m2" id="Check">
+                CHECKS
+            </item>
+
+        </menu>
+
+
+        <content data-ref="m1">
+            <div id="idState1">Account freeze to block: <B id="idStateBlock"></B> value: <B id="idStateValue"></B></div>
+            <div>
+                Account:
+                <select size="1" id="idUser" style="width: 200px" class="" onchange="SaveValues()">
+                    <option value="0">0000</option>
+                </select>
+                <button onclick="CreateNewAccount(0)">New</button>
+            </div>
+
+
+            <BR>
+            <DIV>AMOUNT: <input type="number" class="radius" id="idValueFreeze"></DIV>
+            <DIV class="freezehead">PERIOD IN:</DIV>
+            <menu>
+                <item data-ref="s1">
+                    Dates
+                </item>
+                <item data-ref="s2">
+                    Blocks
+                </item>
+            </menu>
+
+            <content data-ref="s1">
+                <div align='center'>
+                    <BR><B>Freezing an account for period in date:</B><BR><BR>
+
+                    <table>
+                        <tr><td>Count year:</td><td><input type="number" class="radius" id="idYear"></td></tr>
+                        <tr><td>Count month:</td><td><input type="number" class="radius" id="idMonth"></td></tr>
+                        <tr><td>Count day:</td><td><input type="number" class="radius" id="idDay"></td></tr>
+                    </table>
+
+                    <BR>
+                    Freeze to <B id="idFreezeDate"></B>
+                    <BR><BR>
+                    <button class="radius" onclick="Freeze('Date')">Freeze</button>
+                </div>
+            </content>
+
+            <content data-ref="s2">
+                <div align='center'>
+                    <BR><B>Freezing an account for period in blocks:</B><BR><BR>
+                    Count of blocks:<input type="number" class="radius" id="idBlock">
+                    <BR><BR>
+                    Freeze to <B id="idFreezeBlock"></B>
+                    <BR>
+                    <button class="radius" onclick="Freeze('Block')">Freeze</button>
+                </div>
+            </content>
+
+        </content>
+
+        <content data-ref="m2">
+            <div align='center'>
+
+                Checking account state<BR>
+
+                <DIV>Account: <input type="number" class="radius" id="idAccountCheck" onchange="SaveValues();"></DIV>
+                <BR>
+                <button class="radius" onclick="ReadAccInfo()">Get info</button>
+
+                <DIV id="idAccInfo"></DIV>
+
+
+            </div>
+
+        </content>
+
+    </DIV>
+</DIV>

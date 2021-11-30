@@ -1,0 +1,1038 @@
+<script>
+
+    ALL_ACCOUNTS=1;
+    var glProject=undefined;
+    var WasFounder=0;
+    var nViewMode=0;
+    var PROJ_MAP={};
+
+
+    function FindMax(Arr)
+    {
+        var MaxUserAcc=0;
+        var MaxSumTera=-1;
+        for(var i=0;i<Arr.length;i++)
+        {
+            var Item=Arr[i];
+            if(!Item.Currency && Item.Sum>MaxSumTera)
+            {
+                MaxSumTera=Item.Sum;
+                MaxUserAcc=Item.Num;
+            }
+            if(!MaxUserAcc)
+                MaxUserAcc=Item.Num;
+        }
+        return MaxUserAcc;
+    }
+
+    function FindMaxAcc()
+    {
+        var Arr=[],ArrOwn=[];
+
+        for(var i=0;i<USER_ACCOUNT.length;i++)
+        {
+            var Item=USER_ACCOUNT[i];
+            var Value={Num:Item.Num,Sum:FLOAT_FROM_COIN(Item.Value),Currency:Item.Currency};
+
+            Arr.push(Value);
+            if(SMART.Num===Item.Value.Smart)
+                ArrOwn.push(Value);
+
+
+        }
+
+        return FindMax(ArrOwn.length?ArrOwn:Arr);
+    }
+
+    function GetProjAcc()
+    {
+        var AccNum=nViewMode;
+        if(AccNum<=2)
+            AccNum=+$("idAccount").value;
+
+        return AccNum;
+    }
+
+
+
+    function GetBlockNumByTime(CurrentTime)
+    {
+        var CurTimeNum=CurrentTime-window.FIRST_TIME_BLOCK;
+        return Math.floor(CurTimeNum/CONSENSUS_PERIOD_TIME + 0.999999);
+    }
+    function DateFromBlock(BlockNum)
+    {
+        return new Date(window.FIRST_TIME_BLOCK + BlockNum * window.CONSENSUS_PERIOD_TIME);
+    }
+
+    function DateFromBlockStr(BlockNum)
+    {
+        var D=DateFromBlock(BlockNum);
+        return formatDate(D);
+    }
+
+
+
+    window.addEventListener('Init',function ()
+    {
+        if(SMART.Num!==124 && SMART.Num!==7)
+            SetVisibleBlock("idCreate",0);
+
+        SetVisibleBlock("idTest",SMART.Num===7);
+
+
+        var AccNum=+OPEN_PATH;
+        if(AccNum)
+        {
+            nViewMode=AccNum;
+        }
+        else
+        {
+            nViewMode=1;
+            UpdateFillUser();
+        }
+        ViewMode();
+    });
+
+
+
+    window.addEventListener('UpdateInfo',function ()
+    {
+        UpdateFillUser();
+        if(IsVisibleBlock("idInfo"))
+            UpdateProject();
+    });
+
+    window.addEventListener('Event',function(e)
+    {
+        var Description=e.detail.Description;
+        if(Description)
+        {
+            //ToLog(Description);
+            if(Description.cmd==="Start" && Description.Project===GetProjAcc())
+            {
+                UpdateProject()
+                SetStatus("Start project: "+Description.Project);
+            }
+        }
+    });
+
+    //----------------- List
+    function UpdateList()
+    {
+        Call(0,"GetList",{},[],function (Err,RetData)
+        {
+            if(Err)
+                return;
+
+            ViewList(RetData);
+
+        });
+    }
+    function ViewList(Data)
+    {
+        //ToLog(Data);
+        for(var i=0;i<Data.ArrNum.length;i++)
+        {
+            var Num=Data.ArrNum[i];
+            CreateItem(Num);
+            ViewItem(Num);
+        }
+    }
+    function CreateItem(AccNum)
+    {
+        var id=$("item"+AccNum);
+        if(!id)
+        {
+            id = AddChild($("idGrid"),AccNum,"item");
+
+            AddChild(id,AccNum,"vname");
+            var img=AddChild(id,AccNum,"vimg");
+            AddChild(id,AccNum,"vcap");
+            AddChild(id,AccNum,"vdate");
+            AddChild(id,AccNum,"vdesc");
+            AddChild(id,AccNum,"vcom");
+
+
+            img.onclick=function()
+            {
+                window.scrollBy(0,-1000);
+                ViewMode(AccNum);
+            };
+        }
+    }
+    function ViewItem(AccNum)
+    {
+        var Item=PROJ_MAP[AccNum];
+        if(!Item)
+        {
+            Call(AccNum,"GetProject",{},[],function (Err,RetData)
+            {
+                if(Err)
+                    return;
+                PROJ_MAP[AccNum]=RetData;
+                ViewItem(AccNum);
+            });
+            return;
+        }
+
+        SetV(AccNum,"vname",Item.Name);
+
+        var Str="";
+        if(Item.Img)
+            Str="<img src='"+Item.Img+"' class='vimg'>";
+        if(Str!==Item.LastImg)
+            SetH(AccNum,"vimg",Str);
+        Item.LastImg=Str;
+
+        var Value=Item.Value;
+        var Percent=Math.floor(100*FLOAT_FROM_COIN(Value)/Item.MinSum);
+        SetV(AccNum,"vcap","Raise: "+Item.MinSum+" ("+Percent+" %)");
+
+
+        SetV(AccNum,"vdate","Finish: "+DateFromBlockStr(Item.BlockNum));
+        SetV(AccNum,"vdesc",Item.Desc);
+        SetV(AccNum,"vdesc",Item.Desc);
+        SetH(AccNum,"vcom","To participate, send coins to Account: <B>"+AccNum+"</B>");
+
+        //ToLog(Item);
+
+    }
+
+    function SetV(num,type,value)
+    {
+        SetT(type+num,value);
+    }
+    function SetH(num,type,value)
+    {
+        var id=$(type+num);
+        if(id.innerHTML!==value)
+            id.innerHTML=value;
+    }
+
+    function AddChild(p,num,type)
+    {
+        var id = document.createElement('div');
+        id.id=type+num;
+        id.className = type;
+        p.appendChild(id);
+        return id;
+    }
+    //-----------------
+    function SetT(name,value)
+    {
+        value=String(value).replace("  "," ");
+        var id=$(name);
+        if(id && id.innerText!==value)
+        {
+            id.innerText=value;
+        }
+        return id;
+    }
+
+    //----------------- Project
+
+    function UpdateFillUser()
+    {
+
+        var ArrW=[],ArrOwn=[];
+        for(var i=0;i<USER_ACCOUNT.length;i++)
+        {
+            var Item=USER_ACCOUNT[i];
+            var Value={value:Item.Num, text:Item.Num+"."+Item.Name+"  "+SUM_TO_STRING(Item.Value,Item.Currency,1)};
+            if(SMART.Num===Item.Value.Smart)
+                ArrOwn.push(Value);
+
+
+            if(glProject && glProject.CurrencyT===Item.Currency)
+            {
+                ArrW.push(Value);
+            }
+        }
+
+        FillSelect("idAccount",ArrOwn);
+        FillSelect("idAccW",ArrW);
+    }
+
+
+    function UpdateProject()
+    {
+        var AccNum=GetProjAcc();
+        Call(AccNum,"GetProject",{},[],function (Err,RetData)
+        {
+            if(Err)
+                return;
+
+            PROJ_MAP[AccNum]=RetData;
+
+            SetVisibleBlock("idInfo",RetData.Start);
+            SetVisibleBlock("idEdit",!RetData.Start);
+
+            ViewPage(RetData);
+
+        });
+    }
+    var LastImg="";
+    function ViewPage(Data)
+    {
+        var S=!!Data.Start;
+
+        if(S)
+        {
+            glProject=Data;
+            SetI("Start",DateFromBlockStr(Data.Start),S);
+            SetI("Date",DateFromBlockStr(Data.BlockNum),S);
+
+            WasFounder=0;
+            var StrArr="";
+            for(var i=0;i<Data.ArrTo.length;i++)
+            {
+                var Item=Data.ArrTo[i];
+                var Str=FObjToStr(Item);
+                StrArr+=Str+"\n";
+                if(USER_ACCOUNT_MAP[Item.AccNum] && !Item.Sent)
+                    WasFounder=Item.AccNum;
+            }
+            SetI("To",StrArr,S);
+
+            var Arr=["No tokens","Distrib by rate","Distrib by total amount"];
+            SetI("Mode",Arr[Data.Mode],S);
+
+            var Currency=Data.Currency;
+            var Value=Data.Value;
+            var Percent=Math.floor(100*FLOAT_FROM_COIN(Value)/Data.MinSum);
+            var IsFunding=(Data.BlockNum>GetBlockNumByTime(Date.now()))?1:0;
+            var Refund=(Percent<100 && !IsFunding)?1:0;
+
+
+            var id=SetT("idCommonI","Current: "+SUM_TO_STRING(Value,Currency,0,1)+" ("+Percent+"%)");
+            id.className=Refund?"red":(Percent<100?"blue":"green");
+
+            SetI("MinSum",Data.MinSum.toLocaleString(),S);
+            SetI("MaxSum",Data.MaxSum.toLocaleString(),S);
+
+            SetVisibleBlock("idRefund",Refund);
+
+            var bWBtns=!Refund;
+            if(bWBtns && Percent<100 || IsFunding)
+                bWBtns=0;
+            SetVisibleBlock("idWBtns",bWBtns);
+
+
+            SetVisibleBlock("idWithdrawF",WasFounder);
+            SetVisibleBlock("idWithdraw",!WasFounder);
+
+            var Str="<img src='"+Data.Img+"'>";
+            if(Str!==LastImg)
+                $("idImgI").innerHTML=Str
+            LastImg=Str;
+
+            SetT("idUrlI",Data.Url);
+
+        }
+        else
+        {
+            glProject=undefined;
+            if(Data.BlockNum)
+                $("idDate").valueAsNumber=+DateFromBlock(Data.BlockNum);
+            else
+                SetI("Date","");
+
+            var element=$("idTo");
+            var Options=element.options;
+            Options.length=0;
+            for(var i=0;i<Data.ArrTo.length;i++)
+            {
+                var Str=FObjToStr(Data.ArrTo[i]);
+                Options[Options.length] = new Option(Str, Str);
+            }
+            SetD(Data,"Mode",S);
+            SetD(Data,"Img",S);
+            SetD(Data,"Url",S);
+            SetD(Data,"MinSum",S);
+            SetD(Data,"MaxSum",S);
+        }
+
+
+        SetD(Data,"TokenAcc",S);
+        SetD(Data,"TokenSum",S);
+        SetD(Data,"Rate",S);
+
+
+        SetD(Data,"Desc",S);
+        SetD(Data,"Name",S);
+    }
+    function SetD(Data,key,S)
+    {
+        SetI(key,Data[key],S);
+    }
+
+    function SetI(id,value,Mode)
+    {
+        if(Mode)
+            SetT("id"+id+"I",value);
+        else
+            $("id"+id).value=value;
+    }
+
+    //--------
+    function TestFill()
+    {
+        var Params={};
+        Params.BlockNum=600;
+        Params.MinSum = 3000;
+        Params.MaxSum = 5000;
+
+        Params.Mode = 1;
+        Params.TokenAcc = 101;
+        Params.TokenSum = 0;
+        Params.Rate = 0.1;
+
+
+        Params.ArrTo=[{AccNum:100,Percent:100}];
+        Params.Name = "Test1";
+        Params.Desc = "=Test Description=";
+        Params.Img = 'https://terafoundation.org/img/blog/news-370x370-sharding.jpg';
+        Params.Url = 'https://terafoundation.org';
+
+        ViewPage(Params);
+    }
+
+    function SaveParams(bStart)
+    {
+        var Params={};
+        Params.Start = bStart;
+
+        var AccNum=+$("idAccount").value;
+
+        if($("idDate").value)
+        {
+            Params.BlockNum=GetBlockNumByTime($("idDate").valueAsNumber);
+        }
+        Params.MinSum = parseFloat($("idMinSum").value);
+        Params.MaxSum = parseFloat($("idMaxSum").value);
+
+        Params.Mode = +$("idMode").value;
+        Params.TokenAcc = +$("idTokenAcc").value;
+        Params.TokenSum = +$("idTokenSum").value;
+        Params.Rate = parseFloat($("idRate").value);
+
+
+        Params.ArrTo=[];
+        var element=$("idTo");
+        var Options=element.options;
+        for(var i=0;i<Options.length;i++)
+        {
+            var item=Options[i];
+            Params.ArrTo.push(FStrToObj(item.value));
+        }
+
+
+        Params.Desc = $("idDesc").value;
+        Params.Name = $("idName").value;
+        Params.Img = $("idImg").value;
+        Params.Url = $("idUrl").value;
+
+
+        if(CheckParams(Params)!==1)
+            return;
+
+
+        SendCall(AccNum,"SetParams",Params,[],AccNum);
+    }
+
+    function SendStart()
+    {
+        SaveParams(1);
+    }
+
+    function DoWithdraw(bFounder)
+    {
+        if(bFounder && !WasFounder)
+            return SetError("Error WasFounder");
+
+        var Params={Founder:bFounder};
+        if(bFounder)
+            Params.ToNum=WasFounder;
+        else
+            Params.ToNum=+$("idAccW").value;
+
+
+        SendCall(GetProjAcc(),"Withdraw",Params,[],FindMaxAcc());
+    }
+    function DoRefund()
+    {
+        SendCall(GetProjAcc(),"Withdraw",{Refund:1},[],FindMaxAcc());
+    }
+
+    //--------
+    //edit acc
+    function AddFounderAcc(bEdit)
+    {
+        var StrText=
+            `
+<table id="idFAT">
+    <tr>
+        <th>Account:</th>
+        <th><input id="idFAccount" type="number" value=""></th>
+    </tr>
+    <tr>
+        <th>Percent:</th>
+        <th><input id="idFPercent" type="number" value=""></th>
+    </tr>
+</table>
+
+        `;
+        let Item;
+        if(bEdit)
+        {
+            Item=FindCurrentFItem();
+            setTimeout(function()
+            {
+                if(Item)
+                {
+                    var Obj=FStrToObj(Item.value);
+                    $("idFAccount").value=Obj.AccNum;
+                    $("idFPercent").value=Obj.Percent;
+                }
+            },10);
+        }
+
+
+        DoConfirm("New founder",StrText,function()
+        {
+            var AccNum=+$("idFAccount").value;
+            var Percent=parseFloat($("idFPercent").value);
+            if(!Percent)
+                Percent=0;
+
+            if(!AccNum && !Percent)
+                return;
+
+            var element=$("idTo");
+            var Options=element.options;
+            var Str=FObjToStr({AccNum:AccNum,Percent:Percent});
+            if(!Item || !bEdit)
+            {
+                Item=new Option(Str,Str);
+                Options[Options.length] = Item;
+            }
+            else
+            {
+                Item.value=Str;
+                Item.text=Str;
+            }
+
+
+            element.value=Item.value;
+        });
+    }
+
+    function DelFounderAcc()
+    {
+        var Item=FindCurrentFItem();
+        if(Item)
+        {
+            var element=$("idTo");
+            if(Item.Index>0)
+                element.value=element.options[Item.Index-1].value;
+            element.removeChild(Item);
+        }
+    }
+
+    function FindCurrentFItem()
+    {
+        var element=$("idTo");
+        var Options=element.options;
+        for(var i=0;i<Options.length;i++)
+        {
+            var item=Options[i];
+            if(element.value===item.value)
+            {
+                item.Index=i;
+                return item;
+            }
+        }
+    }
+    function FStrToObj(Str)
+    {
+        var index=Str.indexOf(":");
+        var Obj={};
+        Obj.AccNum=parseInt(Str.substring(0,index));
+        Obj.Percent=parseFloat(Str.substring(index+1));
+        if(!Obj.Percent)
+            Obj.Percent=0;
+        return Obj;
+    }
+    function FObjToStr(Obj)
+    {
+        return ""+Obj.AccNum+" : "+Obj.Percent+"%";
+    }
+    //--------
+
+    function CheckParams(Params)
+    {
+        var SumP=0;
+        for(var i=0;i<Params.ArrTo.length;i++)
+            SumP+=Params.ArrTo[i].Percent;
+        if(!Params.Name)
+            return SetError("Error Name");
+        if(!Params.Desc)
+            return SetError("Error Desc");
+        if(!Params.BlockNum)
+            return SetError("Error finish date");
+        if(!Params.MinSum)
+            return SetError("Error MinSum");
+        if(SumP!==100)
+            return SetError("Error founder accounts");
+
+        if(Params.Mode==1 && !Params.Rate)
+            return SetError("Error Rate");
+        if(Params.Mode==2 && !Params.TokenSum)
+            return SetError("Error amount for sale");
+        if(Params.Mode && !Params.TokenAcc)
+            return SetError("Error tokens account");
+
+
+        return 1;
+    }
+
+
+    //----
+    function ViewMode(nSetMode)
+    {
+        if(nSetMode)
+            nViewMode=nSetMode;
+
+        SetVisibleBlock("idList",nViewMode===1);
+        SetVisibleBlock("idPage",nViewMode>1);
+
+        if(nViewMode===1)
+        {
+            if(nSetMode)
+                SetLocationPath("");
+            UpdateList();
+        }
+        else
+        if(nViewMode>1)
+        {
+            UpdateProject();
+
+            SetVisibleBlock("idBAccount",nViewMode===2);
+            SetVisibleBlock("idIAccount",nViewMode>2);
+            SetT("idIAccountN",nViewMode);
+        }
+        if(nSetMode && nViewMode>2)
+            SetLocationPath(nViewMode);
+    }
+    function OpenHistory(Num)
+    {
+        OpenLink("/history.html#"+Num);
+    }
+</script>
+
+<style>
+
+    body
+    {
+        background-color2: #F4F5F6;
+        color: black;
+        font-family: sans-serif;
+    }
+    .page
+    {
+        max-width: 800px;
+    }
+    table
+    {
+        border-collapse: collapse;
+        max-width: 800px;
+    }
+    th
+    {
+        text-align: left;
+        font-weight: 100;
+        margin:0;
+        padding: 0;
+        padding-top: 4px;
+    }
+
+    #idAccount
+    {
+        width: 250px;
+    }
+    #idDesc,#idName
+    {
+        width: 100%;
+
+        max-width: 800px;
+        margin: 0px;
+        padding: 0px;
+    }
+    #idDate
+    {
+        width:199px;
+    }
+
+    #idTo
+    {
+        width: 100%;
+        max-width: 190px;
+    }
+
+    #idInfo th
+    {
+        border: 1px solid #ddd;
+        padding: 5px;
+    }
+
+    th:first-child
+    {
+        width: 20%;
+        min-width:90px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    #idCommonI,#idNameI
+    {
+        text-align: center;
+    }
+    .blue
+    {
+        color:blue;
+    }
+    .green
+    {
+        color:green;
+    }
+    .red
+    {
+        color:red;
+    }
+    th img
+    {
+        max-width: 100%;
+    }
+    .wbt
+    {
+        display: flex;
+    }
+
+    #idFAT
+    {
+        width: 200px;
+    }
+    #idFAccount,#idFPercent
+    {
+        width: 100px;
+    }
+
+
+    #idIAccount
+    {
+        font-weight: 600;
+        font-size: 14px;
+        color: #855818;
+    }
+
+    a
+    {
+        cursor:pointer;
+        color: blue;
+    }
+
+
+    .grid
+    {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        grid-gap: 10px;
+        font-family: 'BenderRegular';
+    }
+    .item
+    {
+        margin: 10px auto;
+        width: 240px;
+        height: 320px;
+
+        background-color: #f2f3f5;
+        box-shadow: 0 0 5px rgb(0 0 0);
+        border: 0px #c3c3c3 solid;
+        border-radius: 5px;
+    }
+
+    .vname
+    {
+        background-color: #242B39;
+        height: 47px;
+        color: #fff;
+        padding: 6px;
+        font-size: 14px;
+        text-align: left;
+        border-radius: 5px 5px 0 0;
+    }
+    .vimg
+    {
+        width: 240px;
+        height: 120px;
+        margin:auto;
+    }
+    .vcap
+    {
+        color: #003bb2;
+        font-weight: bold;
+        font-size: 16px;
+        margin-top: 9px;
+        text-align: left;
+        margin-left: 12px;
+    }
+    .vdate
+    {
+        text-align: left;
+        margin-left: 12px;
+    }
+    .vdesc
+    {
+        text-align: left;
+        padding: 5px;
+        height:48px;
+        overflow: hidden;
+    }
+    .vcom
+    {
+        padding: 5px;
+        height:22px;
+        font-size: 12px;
+    }
+
+    .btmode
+    {
+        background-color: #242B39;
+        color:#FFF;
+        width:120px;
+        height:30px;
+        border-radius: 5px;
+        padding:0;
+        margin:5px;
+        border: 0;
+    }
+
+    .vimg:hover, .btmode:hover
+    {
+        cursor: pointer;
+        box-shadow: 0 0 10px rgb(0 0 0);
+    }
+
+
+
+</style>
+
+
+
+
+<DIV align="center">
+    <DIV class="page">
+
+        <div id="idList" style="display:none">
+            <button id="idCreate" class="btmode" onclick="ViewMode(2)">Create project</button>
+            <div id="idGrid" class="grid">
+            </div>
+        </div>
+
+        <div id="idPage" style="display:none">
+            <button class="btmode" onclick="ViewMode(1)">To list mode</button>
+
+            <div id="idBAccount">
+                Choose project account:
+                <select size="1" id="idAccount" onchange="UpdateProject()">
+                    <option value="0">Loading...</option>
+                </select>
+                <button onclick="CreateNewAccount()">New</button>
+            </div>
+            <div id="idIAccount">To participate, send coins to Account: <a id="idIAccountN" onclick="OpenHistory(this.innerText)"></a></div>
+
+            <div id="idEdit" style="display:none">
+                <table>
+                    <tr>
+                        <th colspan="2">Name:</th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">
+                            <input id="idName" type="string">
+                        </th>
+                    </tr>
+
+                    <tr>
+                        <th colspan="2">Description:</th>
+                    </tr>
+                    <tr>
+                        <th colspan="2">
+                            <textarea id="idDesc" rows="4"></textarea>
+                        </th>
+                    </tr>
+
+
+                    <tr>
+                        <th>URL:</th>
+                        <th><input id="idUrl" type="string"></th>
+                    </tr>
+                    <tr>
+                        <th>Picture:</th>
+                        <th><input id="idImg" type="string"></th>
+                    </tr>
+
+                    <tr>
+                        <th>Finish (UTC time):</th>
+                        <th><input id="idDate" type="datetime-local"></th>
+                    </tr>
+
+                    <tr>
+                        <th>Min amount:</th>
+                        <th><input id="idMinSum" type="number"></th>
+                    </tr>
+                    <tr>
+                        <th>Max amount:</th>
+                        <th><input id="idMaxSum" type="number"></th>
+                    </tr>
+
+                    <tr>
+                        <th>Token sale mode:</th>
+                        <th>
+                            <select size="1" id="idMode">
+                                <option value="0">No tokens</option>
+                                <option value="1">Distrib by rate</option>
+                                <option value="2">Distrib by total amount</option>
+                            </select>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th>Rate:</th>
+                        <th><input id="idRate" type="number"></th>
+                    </tr>
+                    <tr>
+                        <th>Tokens account:</th>
+                        <th><input id="idTokenAcc" type="number"></th>
+                    </tr>
+                    <tr>
+                        <th>Amount for sale:</th>
+                        <th><input id="idTokenSum" type="number"></th>
+                    </tr>
+
+
+                    <tr>
+                        <th>Founder accounts:</th>
+                        <th>
+                            <select size="4" id="idTo"  ondblclick="AddFounderAcc(1)">
+                            </select>
+                            <BR>
+                            <span>
+                <button onclick="AddFounderAcc()">Add</button>
+                <button onclick="DelFounderAcc()">Del</button>
+            </span>
+                        </th>
+
+                    </tr>
+
+                </table>
+
+
+                <BR>
+                <button onclick="SaveParams()">Send params</button>
+                <button onclick="SendStart()">Start project</button>
+                <button id="idTest" onclick="TestFill()">Fill</button>
+            </div>
+
+            <div id="idInfo" style="display:none">
+                <BR>
+                <table>
+                    <tr>
+                        <th colspan="2" id="idNameI"></th>
+                    </tr>
+                    <tr>
+                        <th colspan="2"><div align="center" id="idImgI"></div></th>
+                    </tr>
+                    <tr>
+                        <th colspan="2" id="idCommonI"></th>
+                    </tr>
+
+                    <tr>
+                        <th colspan="2">
+                            <div class="wbt">
+                                <button class="btmode" id="idRefund" onclick="DoRefund()">Refund</button>
+                                <div id="idWBtns">
+                                    <button class="btmode" id="idWithdrawF" onclick="DoWithdraw(1)">Founder withdraw</button>
+                                    <div id="idWithdraw">
+                                        <button class="btmode" onclick="DoWithdraw()">Token withdraw</button>
+                                        <select size="1" id="idAccW">
+                                            <option value="0">Loading...</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </th>
+                    </tr>
+
+
+                    <tr>
+                        <th>Site:</th>
+                        <th><a id="idUrlI" onclick="OpenLink(this.innerText)"></a></th>
+                    </tr>
+                    <tr>
+                        <th>Started</th>
+                        <th id="idStartI"></th>
+                    </tr>
+
+
+                    <tr>
+                        <th>Finish:</th>
+                        <th id="idDateI"></th>
+                    </tr>
+
+                    <tr>
+                        <th>Min amount:</th>
+                        <th id="idMinSumI"></th>
+                    </tr>
+                    <tr>
+                        <th>Max amount:</th>
+                        <th id="idMaxSumI"></th>
+                    </tr>
+
+                    <tr>
+                        <th>Token sale mode:</th>
+                        <th id="idModeI"></th>
+                    </tr>
+                    <tr>
+                        <th>Rate:</th>
+                        <th id="idRateI"></th>
+                    </tr>
+                    <tr>
+                        <th>Tokens account:</th>
+                        <th id="idTokenAccI"></th>
+                    </tr>
+                    <tr>
+                        <th>Amount for sale:</th>
+                        <th id="idTokenSumI"></th>
+                    </tr>
+
+                    <tr>
+                        <th>Founder accounts:</th>
+                        <th id="idToI"></th>
+                    </tr>
+
+                    <tr>
+                        <th>Description:</th>
+                        <th id="idDescI">
+                        </th>
+                    </tr>
+
+                </table>
+
+
+            </div>
+        </div>
+
+    </DIV>
+</DIV>
+
+

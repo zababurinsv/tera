@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JS Wallet</title>
+</head>
+
+<script type="text/javascript" src="https://terawallet.org/JS/web3-tera.js"></script>
+
+<body>
+<script>
+    function StaticCall()
+    {
+        web3.tera.StaticCall({From:0, To:226688, Method:"HellowWorld", Params:{}},function (Data)//223295
+        {
+            if(Data.result)
+                idResult.value="OK, result="+Data.RetValue;
+        });
+    }
+
+
+    function SendTx()
+    {
+        web3.tera.Send({To:20, Sum:1.5, Description:"Test only"});
+    }
+
+    function SendMethod()
+    {
+        web3.tera.SendCall({From:226689, To:226689, Method:"Method1", Params:{Sum:5}},function (Data)
+        {
+            idResult.value="Send Method result = "+Data.result+" "+Data.text;
+        });
+    }
+
+    function Create()
+    {
+        web3.tera.CreateAccount({Currency:0, Description:"Test"},function (Data)
+        {
+            idResult.value="Send Method result = "+Data.result+" "+Data.text;
+        });
+    }
+
+    web3.tera.OnInfo(function ()
+    {
+        idInfo.value=JSON.stringify(web3.tera.INFO);
+    });
+
+    web3.tera.OnEvent(function (Data)
+    {
+        idEvents.value=JSON.stringify(Data);
+    });
+
+    web3.tera.OnLogin(function (Result)
+    {
+        idBlockSend.style.display=Result?"inline-block":"none";
+    });
+
+    window.addEventListener('load',function ()
+    {
+        web3.tera.InjectHTML('http://127.0.0.1:8800/web3-wallet.html');
+        // web3.tera.InjectHTML();
+    });
+</script>
+
+
+
+<button onclick="web3.tera.Login(1813)">Connect localhost...</button>
+<button onclick="web3.tera.Login(128)">Connect web...</button>
+<button onclick="SendTx()">Send money</button>
+<span id="idBlockSend" style="display: none">
+    <button onclick="SendMethod()">Method</button>
+    <button onclick="Create()">Create account</button>
+</span>
+<button onclick="StaticCall()">Static method</button>
+
+<button onclick="web3.tera.Logout()">Logout</button>
+<BR>RESULT:<BR>
+<textarea id="idResult" cols="80" rows="5"></textarea>
+<BR>EVENTS:<BR>
+<textarea id="idEvents" cols="80" rows="10"></textarea>
+<BR>INFO:<BR>
+<textarea id="idInfo" cols="80" rows="20"></textarea>
+</body>
+
+
+</html>
+
+

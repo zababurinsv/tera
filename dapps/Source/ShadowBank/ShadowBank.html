@@ -1,0 +1,1389 @@
+<!--1-->
+<script>
+    //1
+    ALL_ACCOUNTS=1;
+    var TabArr=[{name:"TabDeposit"},{name:"TabOrder"},{name:"TabOperate"}];
+    var SaveIdArr=["idUser","idDepositAmount","idFrom","idTo","idOrderAmount","idTail","idRun","idToDepo","idAcc","idNoSend","idPrivKey0"];
+
+    //const
+    var MAX_TIME_PROCESS=2;//s
+    var RUN_PERIOD=2;//s
+    var MIN_INTERVAL_FOR_RUN=10;//s
+
+    var MAX_DECRYPT_ERR=2;
+    var MAX_ITEMS_DEPTH=3000;
+    var MAX_ITEMS_SEND=6;
+
+    var CONST_TEST_NUMBER=123456789;
+    var CONST_TEST_ARR=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1];
+
+
+</script>
+<script>
+    //2 TAB TAB
+    window.addEventListener('Init',function ()
+    {
+
+        if(!window.CLIENT_VERSION)
+        {
+            SetError("Old client version, pls update wallet");
+            SetVisibleBlock("TabHeader",0);
+        }
+
+        if(OPEN_PATH.substr(0,3)==="Tab")
+        {
+            SelectTab(OPEN_PATH);
+        }
+        window.addEventListener('History',function (e)
+        {
+            var Data=e.detail;
+            OPEN_PATH=Data.OPEN_PATH;
+            if(OPEN_PATH.substr(0,3)==="Tab")
+            {
+                SelectTab(OPEN_PATH);
+            }
+        });
+    });
+
+    function SelectTab(name,bNoLocation)
+    {
+        $("idCurTabName").value=name;
+        if(!bNoLocation)
+            SetLocationPath(name);
+
+        SetVisibleTab();
+        //SaveValues();
+    }
+
+    function SetVisibleTab()
+    {
+        var CurTabName=$("idCurTabName").value;
+        if(!CurTabName || CurTabName==="undefined")
+            CurTabName=TabArr[0].name;
+
+        var str;
+        for (var i=0;i<TabArr.length;i++)
+        {
+            var Param=TabArr[i];
+            var name=Param.name;
+            var Item=$(name);
+            if(!Item)
+                continue;
+            if(CurTabName===name)
+            {
+                Item.style.display = 'block';
+                str="current bttab"
+                if(Param.F)
+                    Param.F();
+            }
+            else
+            {
+                Item.style.display = 'none';
+                str="bttab"
+            }
+
+            var ItemM=$("M"+name);
+            if(ItemM)
+            {
+                ItemM.className=str;
+            }
+        }
+    }
+</script>
+<script>
+    var bWasConstLoad=0;
+    var MapSending={};
+    var CurName;
+    var glSecretArr0;
+    var glSecretArr;
+    var MapSecret={};
+    var MapSecret0={};
+    var MapBalance={};
+
+
+    LoadSignLib();
+
+    window.addEventListener('Init',function ()
+    {
+
+
+        CurName=CurrencyName(BASE_ACCOUNT.Currency);
+
+        SetMobileMode();
+        $("idApp").innerHTML=""+SMART.Num+"."+SMART.Name;
+        UpdateInfoText();
+
+        //setInterval(UpdatePage,1000);
+        //setInterval(UpdateAllList,1*1300);
+        setInterval(DoRunAuto,RUN_PERIOD*1000);
+
+        if(INFO.NETWORK==="TEST-JINN")
+        {
+            $("idImg1").src=GetFilePath("/file/4117917/0");
+            $("idImg2").src=GetFilePath("/file/4117966/0");
+
+        }
+        else
+        {
+            $("idImg1").src=GetFilePath("/file/36715678/0");
+            $("idImg2").src=GetFilePath("/file/36715712/0");
+        }
+    });
+
+    window.addEventListener('UpdateInfo',UpdatePage);
+    function UpdatePage()
+    {
+        //ToLog("UpdatePage")
+
+        if(!glSecretArr)
+            CalcSecret();
+
+        UpdateFillUser();
+        SetFormItemsVisible();
+        UpdateInfoText();
+    }
+    window.addEventListener('Event',function(e)
+    {
+        var Data=e.detail;
+        var Description=Data.Description;
+        if(Data.Error)
+        {
+            SetError(Description);
+            return;
+        }
+        else
+        {
+            switch (Description.cmd)
+            {
+                case "SetConst":
+                    bWasConstLoad=0;
+                    SetStatus("Set new const");
+                    break;
+                case "Deposit":
+                    var Item=MapSending[Description.FromNum];
+                    if(Item)
+                    {
+                        SetStatus("Added Deposit "+Item.Amount+" "+CurName);
+                        delete MapSending[Description.FromNum];
+                    }
+                    break;
+                case "Order":
+                    var Item=MapSending[Description.Hash];
+                    if(Item)
+                    {
+                        SetStatus("Added order "+Item.Amount+" "+CurName);
+                        delete MapSending[Description.Hash];
+                    }
+                    break;
+                case "DoRun":
+                    SetStatus("Run OK");
+                    Description.BlockNum=Data.BlockNum;
+                    CheckAccBalance(Description);
+                    break;
+                default:
+                    if(Description)
+                        ToLog(Description);
+            }
+
+            UpdateAllList();
+        }
+
+    });
+
+
+    function AddNewCur()
+    {
+        CreateNewAccount(BASE_ACCOUNT.Currency);
+    }
+
+
+
+    function UpdateInfoText()
+    {
+
+        var State=BASE_ACCOUNT.SmartState;
+
+
+        var Str="Open: "+(!!State.Open)+
+            "\nMin amount: "+State.MinAmount+" "+CurName+
+            "\nBank: "+FLOAT_FROM_COIN(BASE_ACCOUNT.Value)+" "+CurName;
+        //"\nFee: "+State.Fee+" "+CurName;
+        $("idRestInfo1").innerText=Str;
+        $("idRestInfo2").innerText="Fee: "+State.Fee+" "+CurName;
+
+        if(!HaveBaseAccount() || !glSecretArr)
+            return;
+
+        if(SendCountUpdate)
+            return;
+
+        $("idRestInfo3").innerText="Profit: "+State.Profit+" "+CurName+
+            "\nBalance: "+FLOAT_FROM_COIN(BASE_ACCOUNT.Value)+" "+CurName+
+            "\nAtom: "+State.Atom+
+            "\nDepositCompleted: "+State.DepositCompleted+
+            "\nOrderCompleted: "+State.OrderCompleted+
+            "\nBalanceVer: "+State.BalanceVer+
+            "";
+
+
+    }
+
+    var OldStateOpen=undefined;
+    function SetFormItemsVisible()
+    {
+        if(!BASE_ACCOUNT)
+            return;
+        var AccFrom = BASE_ACCOUNT.Num;
+        var HaveBase=HaveBaseAccount();
+
+        SetVisibleBlock("RTabOperate",(HaveBase?"table-column;":"none"));
+        var State=BASE_ACCOUNT.SmartState;
+        if(HaveBase)
+        {
+            if(!bWasConstLoad)
+            {
+                bWasConstLoad=1;
+                $("idOpen").checked=State.Open;
+                $("idMinAmount").value=State.MinAmount;
+                $("idFee").value=State.Fee;
+            }
+        }
+
+        if(OldStateOpen!==State.Open || !State.Open)
+        {
+            $("idBtDeposit").disabled=!State.Open;
+            OldStateOpen=State.Open;
+        }
+
+    }
+
+</script>
+
+<!--4-->
+
+<script>
+    //Client side
+
+    function SendDeposit()
+    {
+
+        var AccFrom = ParseNum($("idUser").value);
+        if(!AccFrom)
+        {
+            SetError("Choose account");
+            return;
+        }
+
+        var Amount=ParseNum($("idDepositAmount").value);
+        if(!Amount)
+        {
+            SetError("Enter Amount");
+            return;
+        }
+
+        DoConfirm("Deposit","Send to deposit: "+AccFrom+"<BR><BR> <B style='color: #d7741f'>"+Amount+" </B> <B>"+CurName+"</B>?",function ()
+        {
+            SetTempDisabled("idBtDeposit");
+            var State=BASE_ACCOUNT.SmartState;
+            var Params={Amount:Amount,FromNum:AccFrom,PrevBlock:State.DepositBlock,PrevTr:State.DepositTr};
+            SendCall(AccFrom, "Deposit", Params, AccFrom);
+            //ToLog(JSON.stringify(Params));
+
+            MapSending[AccFrom]={Amount:Amount};
+        });
+
+
+    }
+
+    function SendOrder(bDirect)
+    {
+        var Depo=+($("idToDepo").checked);
+        var AccFrom = ParseNum($("idFrom").value);
+        if(!AccFrom)
+        {
+            SetError("Choose account");
+            return;
+        }
+        var ToNum = ParseNum($("idTo").value);
+        if(!ToNum || (Depo && AccFrom===ToNum))
+        {
+            SetError("Enter correct To account number");
+            return;
+        }
+        var Amount=ParseNum($("idOrderAmount").value);
+        if(!Amount)
+        {
+            SetError("Enter Amount");
+            return;
+        }
+
+        if(!window.SignLib)
+        {
+            SetError("Error - SignLib not installed");
+            return;
+        }
+
+
+
+        //secret2
+        ComputeSecret(SMART.Account,function (ArrSecret0)
+        {
+            //secret1
+
+            var PrivArr = new Uint8Array(32);
+            window.crypto.getRandomValues(PrivArr);
+            var PubArrFromNum=SignLib.publicKeyCreate(PrivArr,1);
+
+
+            var ArrSecret1=ComputeSecretWithSmartNum(BASE_ACCOUNT.PubKey, PrivArr,SMART.Num);
+
+            var ArrSecret2=GetXORArr(ArrSecret0,ArrSecret1);
+
+
+            var State=BASE_ACCOUNT.SmartState;
+
+
+            var BaseNum=State.OrderBlock;
+            var HashStr=GetHexFromArr(PubArrFromNum);
+
+            var Params={PrevBlock:State.OrderBlock,PrevTr:State.OrderTr};
+
+
+            //secret1
+            Params.Hash=HashStr;
+            Params.FromNum=EncryptUint32(ArrSecret1,BaseNum+1,AccFrom);
+            Params.Sign1=EncryptUint32(ArrSecret1,BaseNum+2,CONST_TEST_NUMBER);
+
+            //secret2
+            Params.ToNum=EncryptUint32(ArrSecret2,BaseNum+3,ToNum);
+            Params.Amount=EncryptUint32(ArrSecret2,BaseNum+4,Amount);
+            Params.Sign2=EncryptArr32(ArrSecret2,BaseNum+5,CONST_TEST_ARR);
+            Params.Depo=EncryptUint32(ArrSecret2,BaseNum+6,Depo);
+
+
+
+            DoConfirm("Order","Send to "+(Depo?"deposit: ":"account: ")+ToNum+"<BR><BR> <B style='color: #d7741f'>"+Amount+" </B> <B>"+CurName+"</B>?",function ()
+            {
+                SetTempDisabled("idSend");
+                SendCall(SMART.Account, "Order", Params, 0);
+                //ToLog(JSON.stringify(Params));
+                MapSending[HashStr]={Amount:Amount};
+
+                if(!MapSecret[AccFrom])
+                    CalUserSecret(AccFrom);
+            },bDirect);
+        },AccFrom);
+    }
+
+    function StartTest()
+    {
+        setInterval(function ()
+        {
+            SendOrder(1);
+        },5000);
+    }
+
+    function CalcDeposit(id)
+    {
+        var AccNum = ParseNum($(id).value);
+        if(!AccNum)
+        {
+            SetError("Choose account");
+            return;
+        }
+        var State=BASE_ACCOUNT.SmartState;
+
+        var BlockNumStop=USER_ACCOUNT_MAP[AccNum].BlockNumCreate;
+
+        GetStorage("BalanceBlock"+AccNum,function (Key,Value)
+        {
+            ComputeSecret(GetArrFromHex("03522D7E0D4ED5A56A73FF9E9179A417BD28D08AE07326D83C642B758204AD3C09"),function (ArrSecret)
+            {
+                MapSecret0[AccNum]=ArrSecret;
+
+                ComputeSecret(SMART.Account,function (ArrSecret)
+                {
+                    MapSecret[AccNum]=ArrSecret;
+                    UpdateListArr(State.BalanceBlock,State.BalanceTr, [],BlockNumStop-1,2,MAX_ITEMS_DEPTH,function (Params)
+                    {
+                        return CheckAccBalance(Params,AccNum);
+                    });
+                },AccNum);
+
+            },AccNum);
+
+        });
+    }
+
+    function CheckAccBalance(Params,AccNum)
+    {
+        var AccNumForSecret=AccNum;
+        if(!AccNumForSecret)
+            AccNumForSecret=ParseNum($("idFrom").value);
+
+        if(CheckAccBalanceNext(Params,AccNum,AccNumForSecret,MapSecret[AccNumForSecret]))
+            return 1;
+
+        return CheckAccBalanceNext(Params,AccNum,AccNumForSecret,MapSecret0[AccNumForSecret]);
+    }
+    function CheckAccBalanceNext(Params,AccNum,AccNumForSecret,ArrSecret)
+    {
+        if(Params.BlockNum && ArrSecret && typeof Params.Rest==="string")
+        {
+            var Rest=GetDecryptRest(Params.Rest,Params.Rnd+5,ArrSecret);
+            if(Rest.Acc===AccNum || (!AccNum && USER_ACCOUNT_MAP[Rest.Acc]))
+            {
+                //ToLog(""+Rest.Acc+". Total = "+Rest.Total);
+                MapBalance[Rest.Acc]=Rest.Total;
+                SetStorage("BalanceBlock"+Rest.Acc,Params.BlockNum);
+                UpdateFillUser();
+                return 1;//stop
+            }
+        }
+        return 0;
+    }
+
+    function CalUserSecret(AccNum)
+    {
+        ComputeSecret(GetArrFromHex("03522D7E0D4ED5A56A73FF9E9179A417BD28D08AE07326D83C642B758204AD3C09"),function (ArrSecret)
+        {
+            MapSecret0[AccNum]=ArrSecret;
+
+            ComputeSecret(SMART.Account,function (ArrSecret)
+            {
+                MapSecret[AccNum]=ArrSecret;
+            },AccNum);
+
+        },AccNum);
+
+    }
+
+</script>
+
+<!--5-->
+
+<script>
+    //Operation side
+
+    var ArrDeposit=[];
+    var ArrOrder=[];
+
+    var BalanceVer=0;
+    var DepositVer=0;
+    var OrderVer=0;
+
+    var bHaveBaseAccount=-1;
+    function HaveBaseAccount()
+    {
+        //return 1;
+        if(bHaveBaseAccount===-1)
+        {
+            bHaveBaseAccount=!!USER_ACCOUNT_MAP[BASE_ACCOUNT.Num];
+        }
+        return bHaveBaseAccount;
+    }
+
+    function SendConst()
+    {
+        var AccFrom = SMART.Account;
+        var Item=USER_ACCOUNT_MAP[AccFrom];
+        if(!Item || !Item.SmartState)
+        {
+            SetError("Not find base account")
+            return;
+        }
+        SendCall(AccFrom, "SetConst", {Open:+$("idOpen").checked,MinAmount:ParseNum($("idMinAmount").value),Fee:ParseNum($("idFee").value)}, AccFrom);
+    }
+
+    function GetAccArr()
+    {
+        var State=BASE_ACCOUNT.SmartState;
+        var AccFrom = ParseNum($("idAcc").value);
+        GetKey(AccFrom,State,function (Result,Element,PathArr)
+        {
+            ToLog("KEY "+AccFrom+" RES:"+Result+"\nELEMENT:"+JSON.stringify(Element)+"\nARR:"+JSON.stringify(PathArr));
+        });
+    }
+
+    function GetArrStat(bFlag)
+    {
+        ToLog("----------------------------");
+        if(SendCountUpdate)
+            return;
+
+        ArrDeposit.sort(function (a,b) {return a.Num-b.Num;});
+        ArrOrder.sort(function (a,b) {return a.Num-b.Num;});
+
+        ToLog("ArrDeposit:\n"+JSON.stringify(ArrDeposit));
+        ToLog("ArrOrder:\n"+JSON.stringify(ArrOrder));
+
+        if(!bFlag)
+            UpdateAllList();
+    }
+    var RunNumAuto=0;
+    function DoRunAuto()
+    {
+        if(!$("idRun").checked)
+            return;
+
+
+
+        RunNumAuto++;
+        if(RunNumAuto%2===0)
+            DoRun();
+        else
+            UpdateAllList();
+    }
+
+    var PrevRunSendTime=0;
+    function DoRun()
+    {
+        if(!HaveBaseAccount())
+            return;
+
+        var State=BASE_ACCOUNT.SmartState;
+        if(!State.Open)
+            return;
+
+        if(SendCountUpdate)
+            return;
+
+        if(!glSecretArr)
+            return;
+
+        var Delta=Math.min(INFO.CurBlockNum-State.BalanceBlock,(Date.now()-PrevRunSendTime)/1000);
+        if(Delta<MIN_INTERVAL_FOR_RUN)
+            return;
+
+
+
+        if(BalanceVer!==State.BalanceVer
+            || DepositVer!==State.DepositCompleted
+            || OrderVer!==State.OrderCompleted)
+        {
+            ToLog("*** Err Version ***");
+            UpdateAllList();
+            return;
+        }
+
+        if(!ArrDeposit.length && !ArrOrder.length)
+            return;
+
+        ToLog("Do run");
+
+        if(!State.Atom)
+            if(DoDeposit(State))
+                return;
+
+        if(DoOrder(State))
+            return;
+    }
+
+
+    function DoDeposit(State)
+    {
+        var TimeStart=Date.now();
+        ArrDeposit.sort(function (a,b) {return a.Num-b.Num;});
+
+        var DepositCompleted=State.DepositCompleted;
+        for(var i=0;i<ArrDeposit.length;i++)
+        {
+            var Item=ArrDeposit[i];
+            if(Item.BlockNum>DepositCompleted)
+            {
+                GetKey(Item.FromNum,State,function (Result,Element)
+                {
+                    var Total=parseInt(Item.Amount);
+                    if(Result)
+                        Total+=Element.Value;
+
+                    //ToLog("Result="+Result+"   Total="+Total);
+                    SetKey(Item.FromNum,Total,State,function (Arr)
+                    {
+                        var Delta=Date.now()-TimeStart;
+                        if(Delta>MAX_TIME_PROCESS*1000)
+                            return;
+
+                        ToLog("+++++ ACC:"+Item.FromNum+" = "+Total);
+
+                        DepositCompleted=Math.max(DepositCompleted,Item.BlockNum);
+                        SetTx("DoRun", {PrevVer:BalanceVer,Ver:State.BalanceVer+1, PrevBlock:State.BalanceBlock,PrevTr:State.BalanceTr, DC:DepositCompleted,OC:State.OrderCompleted,Send:[],Arr:Arr, Rest:{Acc:Item.FromNum,Total:Total}});
+                    });
+                });
+
+                return 1;
+            }
+            else
+            {
+                ArrDeposit.splice(i,1);
+                i--;
+            }
+        }
+
+        return 0;
+    }
+
+    function IsPublicAddr(StrTo)
+    {
+        if(StrTo.length===66 && (StrTo.substr(0,2)==="02" || StrTo.substr(0,2)==="03") && IsHexStr(StrTo))
+            return 1;
+        else
+            return 0;
+    }
+
+    function DoOrder(State)
+    {
+        ArrOrder.sort(function (a,b) {return a.Num-b.Num;});
+
+
+        var OrderCompleted=State.OrderCompleted;
+        for(var i=0;i<ArrOrder.length;i++)
+        {
+            var Item=ArrOrder[i];
+
+            if(!Item.CanErr && Item.BlockNum>OrderCompleted
+                && typeof Item.Hash === "string" && IsPublicAddr(Item.Hash))
+            {
+                Item.CanErr=1;
+                var PubKey1=GetArrFromHex(Item.Hash);
+                if(Item.Decrypt===3)
+                {
+                    DoOrder2(State,Item);
+                }
+                else
+                if(!Item.Decrypt)
+                    ComputeSecret(PubKey1,function (ArrSecret01)
+                    {
+                        var ArrSecret1=ArrSecret01.slice();
+
+                        var BaseNum=Item.PrevBlock;
+
+                        Item.FromNum=DecryptUint32(ArrSecret1,BaseNum+1,Item.FromNum);
+                        Item.Sign1=DecryptUint32(ArrSecret1,BaseNum+2,Item.Sign1);
+                        Item.Decrypt=1;
+
+                        if(Item.Sign1!==CONST_TEST_NUMBER)
+                            return;
+
+                        if(Item.FromNum)
+                            ComputeSecret(Item.FromNum,function (ArrSecret02)
+                            {
+                                var ArrSecret2=GetXORArr(ArrSecret02,ArrSecret01);
+
+
+
+                                Item.ToNum=DecryptUint32(ArrSecret2,BaseNum+3,Item.ToNum);
+                                Item.Amount=DecryptUint32(ArrSecret2,BaseNum+4,Item.Amount);
+                                Item.Sign2=DecryptArr32(ArrSecret2,BaseNum+5,Item.Sign2);
+                                Item.Depo=DecryptUint32(ArrSecret2,BaseNum+6,Item.Depo);
+                                Item.Decrypt=2;
+
+
+
+                                if(CompareArr(Item.Sign2,CONST_TEST_ARR)===0)
+                                {
+                                    Item.Decrypt=3;
+                                    DoOrder2(State,Item);
+                                }
+                            },SMART.Account);
+                    },SMART.Account);
+
+                return;
+            }
+            else
+            {
+                var Delta=Date.now()-Item.Time;
+                if(Delta>100*1000)
+                {
+                    Item.CanErr=1;
+                    ArrOrder.splice(i,1);
+                    i--;
+                }
+            }
+        }
+    }
+
+    function OrderInfo(Item)
+    {
+        return "Order "+Item.FromNum+" -> "+Item.ToNum+" SUM: "+Item.Amount;
+    }
+    function DoOrder2(State,Item)
+    {
+        //ToLog("DO3 "+JSON.stringify(Item));
+        var Amount=parseInt(Item.Amount);
+        if(!(Amount>0) || !Item.FromNum || !Item.ToNum)
+        {
+            ToLog("Error "+OrderInfo(Item));
+            return;
+        }
+        //process
+        var TimeStart=Date.now();
+
+        var DoAtom,Atom,OperationNum,OperationSum,SendToArr,OrderCompleted,CanErr;
+        if(Item.Depo)
+        {
+            Atom=ReadUint32FromArr(GetArrFromHex(Item.Hash),0);
+
+            if(!State.Atom)
+            {
+                DoAtom=1;
+                OperationNum=Item.FromNum;
+                OperationSum=-(State.Fee+Amount);
+                OrderCompleted=State.OrderCompleted;
+                CanErr=0;
+            }
+            else
+            {
+                if(State.Atom!==Atom)
+                    return;
+                DoAtom=2;
+                OperationNum=Item.ToNum;
+                OperationSum=+Amount;
+                OrderCompleted=Math.max(State.OrderCompleted,Item.BlockNum);
+                CanErr=1;
+            }
+            SendToArr=[];
+        }
+        else
+        {
+            if(State.Atom)
+                return;
+
+            Atom=undefined;
+            DoAtom=undefined;
+            OperationNum=Item.FromNum;
+            OperationSum=-(State.Fee+Amount);
+            SendToArr=[[Item.ToNum,Amount]];
+            OrderCompleted=Math.max(State.OrderCompleted,Item.BlockNum);
+            CanErr=1;
+        }
+
+        GetKey(OperationNum,State,function (Result,Element)
+        {
+            var Total=0;
+            if(Element)
+                Total=Element.Value;
+
+
+            Total=Total+OperationSum;
+
+            if(Total>=0)
+            {
+                SetKey(OperationNum,Total,State,function (Arr)
+                {
+                    var Delta=Date.now()-TimeStart;
+                    if(Delta>MAX_TIME_PROCESS*1000)
+                        return;
+
+                    Item.CanErr=CanErr;
+
+
+                    ToLog("***** ACC:"+OperationNum+" = "+Total+"   MOVE: "+OrderInfo(Item)+" DoAtom: "+(DoAtom?DoAtom:0));
+
+                    SetTx("DoRun", {PrevVer:BalanceVer,Ver:State.BalanceVer+1, PrevBlock:State.BalanceBlock,PrevTr:State.BalanceTr, DoAtom:DoAtom,Atom:Atom,DC:State.DepositCompleted,OC:OrderCompleted,Send:SendToArr,Arr:Arr, Rest:{Acc:OperationNum,Total:Total}});
+                });
+            }
+        });
+    }
+
+    function SetTx(Name, Params)
+    {
+        PrevRunSendTime=Date.now();
+        BalanceVer=0;//reset ver
+
+        if($("idNoSend").checked)
+        {
+            ToLog("NO SEND:\n"+JSON.stringify(Params));
+            return;
+        }
+
+
+        Params.Rnd=10*Math.floor(Math.random()*1000)+Params.Ver*10000;
+        Params.Arr=GetEncryptTreeArr(Params.Arr,Params.Rnd+1);
+
+        DoEncryptRest(Params,Params.Rnd+5,function ()
+        {
+            SendCall(SMART.Account, Name, Params, SMART.Account);
+        });
+    }
+
+
+
+    function UpdateAllList()
+    {
+        if(!HaveBaseAccount())
+            return;
+
+        var State=BASE_ACCOUNT.SmartState;
+        if(!State.Open)
+            return;
+
+
+        var IgnoreTailDelta=ParseNum($("idTail").value);
+
+
+
+        BalanceVer=State.BalanceVer;
+        DepositVer=State.DepositCompleted;
+        OrderVer=State.OrderCompleted;
+
+        UpdateListArr(State.DepositBlock,State.DepositTr, ArrDeposit,State.DepositCompleted,IgnoreTailDelta,MAX_ITEMS_DEPTH);
+        UpdateListArr(State.OrderBlock,State.OrderTr, ArrOrder,State.OrderCompleted,2*IgnoreTailDelta,MAX_ITEMS_DEPTH);
+    }
+</script>
+
+<!--6-->
+
+<script>
+    //Crypto-Crypto
+
+    //------------
+
+    function GetEncryptTreeArr(ArrPath,NumRnd)
+    {
+        var Arr=[];
+        WriteUint32ToArr(Arr,CONST_TEST_NUMBER);
+        Arr[Arr.length]=ArrPath.length;
+        for(var i=0;i<ArrPath.length;i++)
+        {
+            var Item=ArrPath[i];
+            var type=Item.t;
+            if(Item.Key)
+                type=type | 4;
+            if(Item.IB)
+                type=type | 8;
+
+            Arr[Arr.length]=type;
+
+            if(type & 4)
+            {
+                WriteUint32ToArr(Arr,Item.Key);
+                WriteUint32ToArr(Arr,Item.Value);
+            }
+            if(type & 8)
+            {
+                WriteUint32ToArr(Arr,Item.IB);
+                WriteUint16ToArr(Arr,Item.IT);
+            }
+        }
+
+        var StrArrPath=EncryptArr32(glSecretArr,NumRnd,Arr)
+        return StrArrPath;
+
+    }
+
+
+    function GetDecryptTreeArr(StrArrPath,NumRnd)
+    {
+        if(!glSecretArr)
+        {
+            if(!HaveBaseAccount())
+                return [];
+
+            var Str="The secret was not calculated";
+            SetError(Str);
+            return [];
+        }
+
+        var Arr=DecryptArr32(glSecretArr,NumRnd,StrArrPath)
+        Arr.len=0;
+        var FirstNum2=ReadUint32FromArr(Arr);
+        if(glSecretArr0 && CONST_TEST_NUMBER!==FirstNum2)
+        {
+            Arr=DecryptArr32(glSecretArr0,NumRnd,StrArrPath)
+        }
+
+        Arr.len=0;
+        FirstNum2=ReadUint32FromArr(Arr);
+        if(CONST_TEST_NUMBER!==FirstNum2)
+        {
+            var Str="Error decrypt arr path, find num: "+FirstNum2;
+            SetError(Str);
+            return [];
+        }
+
+        var Count=Arr[Arr.len]; Arr.len++;
+
+        ArrPath=[];
+        for(var i=0;i<Count;i++)
+        {
+            var Item={};
+            var type=Arr[Arr.len]; Arr.len++;
+            Item.t = type&3;
+
+            if(Item.Key)
+                type=type | 4;
+            if(Item.IB)
+                type=type | 8;
+
+
+            if(type & 4)
+            {
+                Item.Key=ReadUint32FromArr(Arr);
+                Item.Value=ReadUint32FromArr(Arr);
+            }
+            if(type & 8)
+            {
+                Item.IB=ReadUint32FromArr(Arr);
+                Item.IT=ReadUint16FromArr(Arr);
+            }
+
+            ArrPath.push(Item);
+        }
+
+        return ArrPath;
+    }
+
+    //------------
+
+    function DoEncryptRest(Params,NumRnd,F)
+    {
+        var Arr=[];
+        var Rest=Params.Rest;
+        WriteUint32ToArr(Arr,Rest.Acc);
+        WriteUint32ToArr(Arr,Rest.Total);
+
+        ComputeSecret(Rest.Acc,function (ArrSecret)
+        {
+            Params.Rest=EncryptArr32(ArrSecret,NumRnd,Arr);
+            F();
+        },SMART.Account);
+    }
+
+    function GetDecryptRest(StrArr,NumRnd,ArrSecret)
+    {
+        var Arr=DecryptArr32(ArrSecret,NumRnd,StrArr)
+        Arr.len=0;
+        var Rest={};
+        Rest.Acc=ReadUint32FromArr(Arr,Rest.Acc);
+        Rest.Total=ReadUint32FromArr(Arr,Rest.Total);
+
+        return Rest;
+    }
+
+    //------------
+
+    function CalcSecret()
+    {
+        if(!HaveBaseAccount())
+            return;
+
+        var PubKey=[2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2];
+        ComputeSecret(PubKey,function (ArrSecret)
+        {
+            glSecretArr=ArrSecret;
+
+            var PrivStr0=$("idPrivKey0").value;
+            if(PrivStr0)
+            {
+                glSecretArr0 = ComputeSecretWithSmartNum(PubKey, GetArrFromHex(PrivStr0), SMART.Num);
+                SetStatus("Secret 0 and 1 computed");
+            }
+            else
+            {
+                SetStatus("Secret computed");
+            }
+
+
+        },SMART.Account);
+    }
+
+</script>
+
+
+<!--7-->
+
+<script>
+    function SaveValues()
+    {
+        SaveToStorageByArr(SaveIdArr);
+    }
+    function LoadValues()
+    {
+        UpdateFillUser();
+        LoadFromStorageByArr(SaveIdArr,function (Key)
+        {
+            CalcSecret();
+            UpdateAllList();
+        },1);
+    }
+
+    function UpdateFillUser()
+    {
+        var Arr1=[],Arr2=[];
+        for(var i=0;i<USER_ACCOUNT.length;i++)
+        {
+            var Item=USER_ACCOUNT[i];
+            var depo="";
+            if(MapBalance[Item.Num])
+                depo=" (DEP: "+MapBalance[Item.Num]+")";
+
+            if(Item.SmartObj && Item.SmartObj.Num===SMART.Num)
+                Arr1.push({value:Item.Num, text:Item.Num+"."+Item.Name+"  "+SUM_TO_STRING(Item.Value,Item.Currency,1)+depo});
+
+            Arr2.push({value:Item.Num, text:Item.Num+"."+Item.Name+depo});
+        }
+
+        FillSelect("idUser",Arr1);
+        FillSelect("idFrom",Arr2);
+
+    }
+
+    window.addEventListener('Init',function ()
+    {
+        LoadValues();
+        SetVisibleTab();
+    });
+    window.addEventListener('UpdateInfo',UpdateFillUser);
+
+
+</script>
+
+<!--DB-Lib implementation-->
+<script>
+    //---------------------------------------
+    //DB-Lib implementation
+    //---------------------------------------
+    function SetKey(Key,Value,State,F)
+    {
+        SetKeyInner(Key,Value,State.BalanceBlock,State.BalanceTr,F);
+    }
+    function GetKey(Key,State,F)
+    {
+        // if(State.BalanceBlock===68634672)
+        // {
+        //     State.BalanceBlock = 65867077;
+        //     ToLog("Set BalanceBlock=" + State.BalanceBlock);
+        // }
+
+        GetKeyInner(Key,State.BalanceBlock,State.BalanceTr,F);
+    }
+
+    //Decrypter implementation
+    function GetDappBlock(Block,Tr,F)
+    {
+        DappBlockFile(Block,Tr,function (Err,Data)
+        {
+            if(!Err && Data.Type===135)
+            {
+                try{var Params=JSON.parse(Data.Params);}catch (e){}
+                if(Params)
+                {
+                    if(Data.MethodName==="DoRun")
+                    {
+                        if(typeof Params.Arr==="string")
+                            Params.Arr=GetDecryptTreeArr(Params.Arr,Params.Rnd+1);
+                    }
+
+                    F(0,Params,Data.MethodName,Data.FromNum);
+                    return;
+                }
+            }
+            F(1);
+        });
+    }
+
+</script>
+
+
+
+<!--Crypto-Lib-->
+<script>
+</script>
+
+<!--Block walker lib-->
+<script>
+</script>
+
+<!--Dialog-Lib-->
+<script>
+</script>
+
+
+
+
+<!--DB-Tree-Lib-->
+<script>
+
+</script>
+
+
+<style>
+    /*TAB TAB*/
+    :root
+    {
+        --colorTabB1: rgba(255, 255, 255, 0.6);
+        --colorTabB2: #445368;
+        --colorTabB3: #53687e;
+    }
+
+    #TabHeader
+    {
+        z-index:1000;
+        top:0;
+        border-collapse: collapse;
+    }
+    #TabHeader th
+    {
+        color: var(--colorTabB1);
+        background-color: var(--colorTabB2);
+        margin: 0;
+        padding: 1px;
+        height: 44px;
+        font-family: Helvetica,Arial,sans-serif;
+        font-size: 13px;
+        align-content: center;
+        min-width: 50px;
+
+        border: 1px solid white;
+    }
+
+    .bttab
+    {
+        color: var(--colorTabB1);
+        background-color: var(--colorTabB2);
+        cursor: pointer;
+        width: 100%;
+        height: 100%;
+        padding-top: 15px;
+        margin-left: 0px;
+    }
+    .bttab:hover
+    {
+        color: #ecb84e;
+    }
+
+    .current
+    {
+        color: white;
+        background-color: var(--colorTabB3);
+    }
+</style>
+
+<style>
+    body
+    {
+        padding: 0;
+        margin: 0;
+    }
+
+    .radius
+    {
+        border-radius: 4px;
+        min-height: 14px;
+        height: 26px;
+        margin: 5px;
+    }
+    select.radius
+    {
+        padding: 2px 0 2px 2px;
+        margin: 2px;
+        height: 30px;
+    }
+
+    input.radius
+    {
+        padding: 0 5px 0 5px;
+    }
+    button.radius
+    {
+        color:white;
+        background-color: #53687e;
+        border-color: #445368;
+    }
+    button.refuse
+    {
+        background-color: #ee4c56;
+    }
+
+    button.radius:hover
+    {
+        color: #cb763a;
+        cursor: pointer;
+    }
+    button.radius[disabled],button.radius[disabled]:hover
+    {
+        color:white;
+        background-color: rgba(183, 182, 178, 0.9);
+        border-color: rgba(183, 182, 178, 0.9);
+        cursor: auto;
+    }
+
+    .bt
+    {
+        width: 125px;
+        margin-top: 5px;
+        height: 36px;
+    }
+
+
+
+    .info
+    {
+        padding: 5px;
+        border2: 1px solid blue;
+        word-break: break-all;
+        height: 40px;
+        color: blue;
+        margin: 5px 0 5px 0;
+        width: 200px;
+        text-align: left;
+    }
+    .note
+    {
+        border-radius: 3px;
+        padding: 10px;
+        margin: 20px;
+        padding-left: 20px;
+        color: #000081;
+        height: 60px;
+    }
+</style>
+
+<style>
+    button.reload
+    {
+        width: 26px;
+        height:26px;
+        padding-top: 10px;
+        background-image: url('./PIC/reload.svg');
+        background-repeat: no-repeat;
+        background-size: 16px;
+        background-position: center;
+    }
+</style>
+
+
+<DIV align='center'>
+
+    <INPUT id="idCurTabName" value="" style="display: none">
+    <table id="TabHeader">
+        <tr>
+            <th style="width: 10%"><DIV id="idApp">TERA-TERA</DIV></th>
+            <th><DIV id="MTabDeposit" onclick="SelectTab('TabDeposit')" class="bttab">DEPOSIT</DIV></th>
+            <th><DIV id="MTabOrder" onclick="SelectTab('TabOrder')" class="bttab">ORDER</DIV></th>
+            <th id="RTabOperate"><DIV id="MTabOperate" onclick="SelectTab('TabOperate')" class="bttab">OPERATE</DIV></th>
+        </tr>
+    </table>
+
+
+    <!--Deposit-->
+    <DIV id="TabDeposit"  style="display: none;" align="center">
+        <DIV class="item" style="font-size: 14px; width: 300px;text-align: left">
+            <img src="" id="idImg1" width="100" height="100" align="left">
+            <BR><BR>
+            <DIV align="center">
+                <div class="info"  style="border:0;width: 200px;height: 36px;" id="idRestInfo1">...</div>
+            </DIV>
+            <BR><BR><BR>
+            <DIV style="width: 300px">Account associated with a deposit:
+                <button class="radius" onclick="AddNewCur()">*New</button>
+                <table>
+                    <tr>
+                        <td>
+                            <select size="1" id="idUser" style="width: 270px;margin-right: 0;margin-top: 0;" class="radius" onchange="SaveValues()">
+                                <option value="0">Loading...</option>
+                            </select>
+                        </td>
+                        <td>
+                            <button class="reload" onclick="CalcDeposit('idUser')"></button>
+                        </td>
+                    </tr>
+                </table>
+
+            </DIV>
+            <BR>
+            Amount:
+            <INPUT type="number" id="idDepositAmount" style="width:90px;" class="radius" value="0" onchange="SaveValues()">
+            <BR>
+            <button class="radius bt" id="idBtDeposit" onclick="SendDeposit()">Deposit</button>
+        </DIV>
+    </DIV>
+
+    <!--Order-->
+    <DIV id="TabOrder"  style="display: none;" align="center">
+        <DIV class="item" style="font-size: 14px; width: 300px;text-align: left">
+            <img src="" id="idImg2" width="80" height="80" align="left">
+            <DIV align="center">
+                <div class="note" >Note: Data is sent in encrypted and anonymous form</div>
+            </DIV>
+
+            <DIV>From deposit:</DIV>
+
+            <table>
+                <tr>
+                    <td>
+                        <select size="1" id="idFrom" style="width: 270px;margin-right: 0;margin-top: 0;" class="radius" onchange="SaveValues()">
+                            <option value="0">Loading...</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="reload" onclick="CalcDeposit('idFrom')"></button>
+                    </td>
+                </tr>
+            </table>
+
+
+            <BR>
+            <DIV style="width: 300px"><span>To account</span>
+                <INPUT id="idTo" style="width: 285px;text-align: center" class="radius" onchange="SaveValues()" value="">
+            </DIV>
+            <BR>
+            <INPUT type="checkbox" id="idToDepo" style="width:16px;vertical-align: middle" class="radius" value="0" onchange="SaveValues()"><span>Intrabank transfer to another deposit</span>
+            <BR>
+            <span>Amount:</span>
+            <INPUT type="number" id="idOrderAmount" style="width:90px;" class="radius" value="0" onchange="SaveValues()">
+
+            <span class="info" id="idRestInfo2" style="margin-bottom:5px;height:20px">...</span>
+            <button class="radius bt" id="idSend" onclick="SendOrder()">Order</button>
+            <!--<button class="radius bt" id="idSend" onclick="StartTest()">StartTest</button>-->
+
+
+        </DIV>
+    </DIV>
+
+
+    <!--Operate-->
+    <DIV id="TabOperate"  style="display: none;" align="center">
+        <DIV class="item" style="font-size: 14px; width: 300px;text-align: left">
+            Block tail for process:
+            <INPUT type="number" id="idTail" style="width:148px;" class="radius" value="100" onchange="SaveValues();UpdateAllList()">
+
+            <BR>Auto run:
+            <INPUT type="checkbox" id="idRun" style="width:20px;vertical-align: middle" class="radius" checked onchange="SaveValues();">
+            Check only (not send):
+            <INPUT type="checkbox" id="idNoSend" style="width:20px;vertical-align: middle" class="radius" checked onchange="SaveValues();">
+            <BR>
+            <DIV align="center">
+                <DIV class="info" id="idRestInfo3" style="height: 90px">...</DIV>
+            </DIV>
+            <BR>
+
+            Open:
+            <INPUT type="checkbox" id="idOpen" style="width:20px;vertical-align: middle" class="radius" value="0">
+            <BR>Min:
+            <INPUT type="number" id="idMinAmount" style="width:130px;text-align: right;" class="radius" value="0">
+            <BR>Fee:
+            <INPUT type="number" id="idFee" style="width:130px;text-align: right;" class="radius" value="0">
+
+
+            <BR><button class="radius bt" onclick="SendConst()" id="idBtOpen">Set</button>
+            <BR><button class="radius bt" onclick="DoRun()" id="idBtRun">Run once</button>
+            <BR><button class="radius bt" onclick="GetArrStat()">Deposits/Orders</button>
+
+            <BR>Acc:<INPUT type="number" id="idAcc" style="width:80px;text-align: right;" onchange="SaveValues();" class="radius" value="0">
+            <BR><button class="radius bt" onclick="GetAccArr()">Balance</button>
+
+            <BR>=Priv0=:
+            <INPUT type="string" id="idPrivKey0" style="width:200px;" class="radius" onchange="SaveValues();" value="">
+
+
+
+        </DIV>
+    </DIV>
+
+
+</DIV>
+
+
+

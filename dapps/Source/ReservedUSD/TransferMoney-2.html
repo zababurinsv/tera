@@ -1,0 +1,22 @@
+<script>
+
+    function RunTransfer()
+    {
+        var Params={Sum:+$("idSum").value,FromNum:+$("idFrom").value};
+        SendCall(0,"Vote",Params,[],SMART.Owner);
+    }
+
+</script>
+
+
+
+<div class="item">
+    From:
+    <input id="idFrom" type="number" value="">
+    Sum:
+    <input id="idSum" type="number" value="">
+    <button onclick="RunTransfer()">Run transfer</button>
+</div>
+
+
+

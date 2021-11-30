@@ -1,0 +1,985 @@
+<script>
+    ALL_ACCOUNTS=1;
+    var MaxUserAcc=0;
+    var Storage=undefined;
+    var ActualMap={};
+    var TabArr=[{name:"TabStart"},{name:"TabDeposit"},{name:"TabSwap"},{name:"TabInvest"},{name:"TabVote"},{name:"TabOperate"}, {name:"SubDeposit"},{name:"SubWithdraw"}];
+    window.addEventListener('Init',function ()
+    {
+        if(OPEN_PATH.substr(0,3)==="Tab")
+        {
+            SelectTab(OPEN_PATH);
+        }
+        else
+        {
+            SelectTab("");
+        }
+        window.addEventListener('History',function (e)
+        {
+            var Data=e.detail;
+            OPEN_PATH=Data.OPEN_PATH;
+            if(OPEN_PATH.substr(0,3)==="Tab")
+            {
+                SelectTab(OPEN_PATH);
+            }
+        });
+    });
+    function SelectTab(name,bNoLocation)
+    {
+        if(typeof name!=="string")
+        {
+            name=name.id.substring(1);
+        }
+        $("idCurTabName").value=name;
+        if(!bNoLocation)
+            SetLocationPath(name);
+        SetVisibleTab();
+        if(name==="TabSwap")
+            SwapInfo();
+        if(name==="TabInvest")
+            LiqInfo();
+    }
+    function SetVisibleTab()
+    {
+        var CurTabName=$("idCurTabName").value;
+        if(!CurTabName || CurTabName==="undefined")
+            CurTabName=TabArr[0].name;
+        var Type=CurTabName.substring(0,1);
+        for (var i=0;i<TabArr.length;i++)
+        {
+            var Param=TabArr[i];
+            var name=Param.name;
+            var CurType=name.substring(0,1);
+            if(CurType!==Type)
+                continue;
+            var Item=$(name);
+            if(!Item)
+                continue;
+            var ItemM=$("M"+name);
+            if(ItemM)
+            {
+                ItemM.className=ItemM.className.replace(" current", "")
+                if(CurTabName===name)
+                    ItemM.className+=" current";
+            }
+            if(CurTabName===name)
+            {
+                Item.style.display = 'block';
+                if(Param.F)
+                    Param.F();
+            }
+            else
+            {
+                Item.style.display = 'none';
+            }
+        }
+        var vRow=CurTabName==="TabStart"?"table-row":0;
+        SetVisibleBlock("idMintedRow",vRow);
+        SetVisibleBlock("idCommInfo",CurTabName==="TabStart");
+        if(CurTabName==="TabInvest" || CurTabName==="TabSwap")
+            vRow="table-row";
+        SetVisibleBlock("idPoolRow",vRow);
+    }
+    window.addEventListener('Event',function(e)
+    {
+        var Data=e.detail;
+        var Description=Data.Description;
+        if(Data.Error)
+        {
+            SetError(Description);
+        }
+        else
+        {
+            var Str=JSON.stringify(Description);
+            ToLog("Event:"+Str);
+            if(typeof Description==="object")
+                Description=Str;
+            SetStatus(Str);
+        }
+    });
+    window.addEventListener('UpdateInfo',function ()
+    {
+        UpdateFillUser();
+        UpdateKeysInfo();
+    });
+    function UpdateKeysInfo()
+    {
+        var KeyArr=["Pools"];
+        var KeyName=[];
+        var AccObj=USER_ACCOUNT_MAP[MaxUserAcc];
+        if(AccObj)
+        {
+            var PubStr=GetHexFromArr(AccObj.PubKey);
+            KeyArr.push({PubKeyStr:PubStr,Currency:0});
+            KeyName.push("TERA");
+            if(Storage)
+            {
+                KeyName.push("DAO");
+                KeyName.push("USD");
+                KeyArr.push({PubKeyStr:PubStr,Currency:Storage.DAONum});
+                KeyArr.push({PubKeyStr:PubStr,Currency:Storage.USDNum});
+            }
+        }
+        Call(0,"GetKeyValueArr",{Keys:KeyArr},[],function (Err,RetArr)
+        {
+            if(Err)
+                return;
+            var Str="";
+            for(var i=0;i<RetArr.length;i++)
+            {
+                var Key=KeyArr[i];
+                if(Key==="Pools")
+                {
+                    Storage=RetArr[i];
+                    StorageToFloat(Storage);
+                }
+                else
+                {
+                    Key=KeyName[i-1];
+                    DoFreeze(RetArr[i].Freeze);
+                    ActualMap[Key]=RetArr[i];
+                }
+                Str+=Key+":\n"+JSON.stringify(RetArr[i],"",4)+"\n";
+            }
+            $("idKeyInfo").value=Str;
+            SetVisibleItems();
+            ActualInfo();
+        });
+    }
+    function FindMaxAcc(Arr)
+    {
+        MaxUserAcc=0;
+        var MaxSumTera=-1;
+        for(var i=0;i<Arr.length;i++)
+        {
+            var Item=Arr[i];
+            if(!Item.Currency && Item.Sum>MaxSumTera)
+            {
+                MaxSumTera=Item.Sum;
+                MaxUserAcc=Item.Num;
+            }
+            if(!MaxUserAcc)
+                MaxUserAcc=Item.Num;
+        }
+    }
+    function UpdateFillUser()
+    {
+        var bOwner=0;
+        var Arr=[],ArrOwn=[];
+        var PermitArr={"0":1};
+        if(Storage)
+        {
+            PermitArr[Storage.USDNum]=1;
+            PermitArr[Storage.DAONum]=1;
+        }
+        for(var i=0;i<USER_ACCOUNT.length;i++)
+        {
+            var Item=USER_ACCOUNT[i];
+            if(SMART.Owner===Item.Num)
+                bOwner=1;
+            if(!PermitArr[Item.Currency])
+                continue;
+            var Value={value:Item.Num, text:Item.Num+"."+Item.Name+"  "+SUM_TO_STRING(Item.Value,Item.Currency,1), Num:Item.Num,Sum:FFromCoin(Item.Value),Currency:Item.Currency};
+            Arr.push(Value);
+            if(SMART.Num===Item.Value.Smart)
+                ArrOwn.push(Value);
+        }
+        FindMaxAcc(ArrOwn.length?ArrOwn:Arr);
+        FillSelect("idAccD",ArrOwn);
+        FillSelect("idAccW",Arr);
+        SetVisibleBlock("idTabOwner",bOwner?"1":0);
+    }
+    function PasueBt(btn)
+    {
+        btn.disabled = true;
+        setTimeout(function()
+        {
+            btn.disabled = false;
+        },1000)
+    }
+    function FFromCoin(Coin,Freeze)
+    {
+        if(!Coin)
+            return 0;
+        if(Coin.SumCOIN===undefined)
+            return 0;
+        var fSum=FLOAT_FROM_COIN(Coin);
+        if(Freeze===1 && Coin.Freeze)
+            fSum-=Coin.Freeze.Sum;
+        return fSum;
+    }
+    function TLocal(Sum,Prec)
+    {
+        return Sum.toLocaleString(undefined, { useGrouping: true, style: 'decimal', maximumFractionDigits: Prec });
+    }
+    function TFromCoin(Coin,Prec,Freeze)
+    {
+        if(Prec===undefined)
+            Prec=6;
+        if(!Coin)
+            return "0";
+        var Sum;
+        if(typeof Coin==="number")
+            Sum=Coin;
+        else
+            Sum=FFromCoin(Coin);
+        var Sum0=Sum;
+        if(Freeze===1 && Coin.Freeze)
+            Freeze=Coin.Freeze;
+        if(Freeze && Freeze.Sum)
+        {
+            Sum-=Freeze.Sum;
+        }
+        var Str=TLocal(Sum,Prec);
+        if(Freeze && Freeze.Sum && Sum)
+        {
+            var Percent=Math.floor(100*Freeze.Sum/Sum);
+            if(Percent)
+                Str=Str+"+"+Percent+"%";
+        }
+        return Str;
+    }
+    function Round(Sum)
+    {
+        return Math.floor(Sum*1e6)/1e6;
+    }
+    function SetText(id,text)
+    {
+        var item=$(id);
+        if(item.innerText!==text)
+            item.innerText=text;
+    }
+    function SetVisibleItems()
+    {
+        if(!Storage)
+            return;
+        var Options=$("idLiq").options;
+        for(var i=0;i<Options.length;i++)
+        {
+            var item=Options[i];
+            var mode=item.value.substring(0,3);
+            var value;
+            if(mode==="Add")
+                value=+item.value.substring(3);
+            else
+                value=8;
+            item.disabled = !(value & Storage.LiqMaska);
+        }
+    }
+    function DoFreeze(Item)
+    {
+        var CurBlockNum=INFO.CurBlockNum;
+        var T=Item.Finish-Item.Block;
+        if(T<=0)
+        {
+            Item.Sum=0;
+            Item.Block=0;
+            return;
+        }
+        else
+        {
+            var dS=Item.Sum/T;
+            Item.Sum-=dS*(CurBlockNum-Item.Block);
+            if(Item.Sum<1e-9)
+                Item.Sum=0;
+        }
+        Item.Block=CurBlockNum;
+    }
+    function StorageToFloat(Storage)
+    {
+        DoFreeze(Storage.FreezeTera);
+        DoFreeze(Storage.FreezeUSD);
+        Storage.fTeraReservePool=FFromCoin(Storage.TeraReservePool);
+        Storage.fTeraPool=FFromCoin(Storage.TeraPool)-Storage.FreezeTera.Sum;
+        Storage.fUSDPool=FFromCoin(Storage.USDPool)-Storage.FreezeUSD.Sum;
+        Storage.fUSDAll=FFromCoin(Storage.USDAll);
+        Storage.fDAOAll=FFromCoin(Storage.DAOAll);
+    }
+    function ActualInfo()
+    {
+        if(!Storage)
+            return;
+        SetText("idDepTera",TFromCoin(ActualMap["TERA"],3));
+        SetText("idDepDAO",TFromCoin(ActualMap["DAO"],3,1));
+        SetText("idDepUSD",TFromCoin(ActualMap["USD"],3));
+        SetText("idPoolTera",TFromCoin(Storage.TeraPool,0,Storage.FreezeTera));
+        SetText("idPoolUSD",TFromCoin(Storage.USDPool,0,Storage.FreezeUSD));
+        SetText("idAllTera",TFromCoin(Storage.TeraReservePool,0));
+        SetText("idAllUSD",TFromCoin(Storage.USDAll,1));
+        SetText("idAllDAO",TFromCoin(Storage.DAOAll,0));
+        StartInfo();
+        DeposiInfo();
+        SwapInfo();
+        LiqInfo();
+    }
+    function StartInfo()
+    {
+        SetText("idIFee",""+Storage.KFee*100+" %");
+        var TeraPool=FFromCoin(Storage.TeraPool);//finish sum
+        var USDPool=FFromCoin(Storage.USDPool);
+        var DAOAll=Storage.fDAOAll;
+        if(!Storage.fTeraPool || !Storage.fTeraReservePool || !TeraPool)
+            return;
+        SetText("idIReserve",Round(Storage.fUSDAll/Storage.fTeraReservePool));
+        SetText("idITeraSwap",TFromCoin(Storage.TeraSwapFlow,0));
+        SetText("idIUSDSwap",TFromCoin(Storage.USDSwapFlow,0));
+        var Rate1=Round(Storage.fUSDPool/Storage.fTeraPool);
+        var Rate2=Round(USDPool/TeraPool);
+        if(Rate2!==Rate1)
+        {
+            Rate1=""+Rate1+"в†’"+Rate2;
+        }
+        SetText("idIRate",Rate1);
+        var RateDAO = 1;
+        if(DAOAll)
+            RateDAO+=Storage.FeePool/DAOAll;
+        SetText("idIRateLiq",Round(RateDAO));
+    }
+    function DeposiInfo()
+    {
+        SetText("idAccTera",BASE_ACCOUNT.Num);
+        SetText("idAccUSD",Storage.USDAcc);
+        SetText("idAccDAO",Storage.DAOAcc);
+        SetText("idAccTera2",BASE_ACCOUNT.Num);
+        SetText("idAccUSD2",Storage.USDAcc);
+        SetText("idAccDAO2",Storage.DAOAcc);
+    }
+    function SwapInfo()
+    {
+        if(!Storage)
+            return;
+        var Sum=parseFloat($("idSumSwap").value);
+        SetText("idSumSwap1",TFromCoin(Sum));
+        var SumOut,CurArr;
+        var TeraPool=Storage.fTeraPool;
+        var USDPool=Storage.fUSDPool;
+        if(!TeraPool)
+            return;
+        Rate=USDPool/TeraPool;
+        var Mode=$("idSwap").value;
+        if(Mode==="TeraToUSD")
+        {
+            CurArr=["TERA","USD"];
+            var AmountFee=Sum*Storage.KFee;
+            var Invariant=TeraPool * USDPool;
+            var TeraPoolNew = TeraPool + Sum;
+            var USDPoolNew = Invariant/(TeraPoolNew - AmountFee);
+            SumOut = USDPool - USDPoolNew;
+            if(Sum)
+                Rate=SumOut/Sum;
+        }
+        else
+        {
+            CurArr=["USD","TERA"];
+            var AmountFee=Sum*Storage.KFee;
+            var Invariant=TeraPool * USDPool;
+            var USDPoolNew = USDPool + Sum;
+            var TeraPoolNew = Invariant / (USDPoolNew - AmountFee);
+            SumOut = TeraPool - TeraPoolNew;
+            if(SumOut)
+                Rate=Sum/SumOut;
+        }
+        if(TeraPoolNew<=0)
+            SumOut=0;
+        if(USDPoolNew<=0)
+            SumOut=0;
+        if(SumOut<=0)
+            SumOut=0;
+        SetText("idSumSwap2",TFromCoin(SumOut));
+        SetText("idRateSwap",TFromCoin(Rate));
+        SetText("idCurSwap1","  "+CurArr[0]);
+        SetText("idCurSwap2","  "+CurArr[1]);
+    }
+    function RunSwap()
+    {
+        var Mode=$("idSwap").value;
+        SendMethod("Swap"+Mode,"idSumSwap");
+    }
+    function InvestMode()
+    {
+        var Mode=$("idLiq").value.substring(0,3);
+        var SubMode=$("idLiq").value.substring(3);
+        return {Mode:Mode,SubMode:+SubMode};
+    }
+    function LiqInfo()
+    {
+        if(!Storage)
+            return;
+        var Action=InvestMode();
+        var BtName=Action.Mode;
+        if(BtName==="Rem")
+            BtName="Remove";
+        SetText("idLiqBt",BtName);
+        var Sum=parseFloat($("idSumLiq").value);
+        SetText("idSumLiq1",TFromCoin(Sum));
+        var SumOut,CurArr;
+        var TeraReservePool=Storage.fTeraReservePool;
+        var USDAll=Storage.fUSDAll;
+        var DAOAll=Storage.fDAOAll;
+        var TeraPool=FFromCoin(Storage.TeraPool);//finish sum
+        var USDPool=FFromCoin(Storage.USDPool);
+        if(!TeraReservePool || !TeraPool || !DAOAll)
+            return;
+        var KReserve=USDAll / TeraReservePool;
+        var KSwap=USDPool / TeraPool;
+        var RateDAO=1+Storage.FeePool/DAOAll;
+        var KDAO=1/RateDAO;
+        if(Action.Mode==="Add")
+        {
+            CurArr=["TERA","DAO"];
+            var TeraToReserve;
+            if(Action.SubMode===1)
+                TeraToReserve=0;
+            else
+            if(Action.SubMode===2)
+                TeraToReserve=Sum;
+            else
+                TeraToReserve=Sum/(KReserve/KSwap+1);
+            var TeraToPool=Sum-TeraToReserve;
+            var USDToPool =TeraToReserve*KReserve;
+            SumOut=Sum*KDAO;
+            TeraPool+=TeraToPool;
+            USDPool+=USDToPool;
+        }
+        else
+        {
+            CurArr=["DAO","TERA"];
+            var TeraWithdrawn = Sum/KDAO;
+            var TeraFromReserve = TeraWithdrawn /(KReserve/KSwap+1);
+            var TeraFromPool  = TeraWithdrawn  - TeraFromReserve;
+            var USDFromPool = TeraFromPool*KSwap;
+            if(TeraPool<=TeraFromPool || USDPool<=USDFromPool || TeraReservePool<=TeraFromReserve)
+            {
+                TeraFromPool=0;
+                TeraWithdrawn=0;
+                USDFromPool=0;
+            }
+            SumOut = TeraWithdrawn;
+            TeraPool-=TeraFromPool;
+            USDPool-=USDFromPool;
+        }
+        if(SumOut<=0)
+            SumOut=0;
+        var RateSwap=TeraPool?(USDPool/TeraPool):KSwap;
+        SetText("idSumLiq2",TFromCoin(SumOut));
+        SetText("idRateLiq",TFromCoin(RateDAO));
+        SetText("idSwapInv",TFromCoin(RateSwap));
+        SetText("idCurLiq1","  "+CurArr[0]);
+        SetText("idCurLiq2","  "+CurArr[1]);
+        var vRow=Action.Mode==="Add"?"table-row":0;
+        SetVisibleBlock("idRowInv",vRow);
+    }
+    function RunLiq()
+    {
+        var Action=InvestMode();
+        var Params={Mode:+Action.SubMode};
+        SendMethod(Action.Mode+"Liq","idSumLiq",Params);
+    }
+    function AllSumAcc(idSum,idAcc)
+    {
+        var Num=+$(idAcc).value;
+        var AccObj=USER_ACCOUNT_MAP[Num];
+        if(AccObj)
+            $(idSum).value=Round(FFromCoin(AccObj.Value));
+    }
+    function AllSumW(idSum,idAcc)
+    {
+        var Num=+$(idAcc).value;
+        var AccObj=USER_ACCOUNT_MAP[Num];
+        if(AccObj)
+        {
+            var Sum=0;
+            if(AccObj.Currency===0)
+                Sum=Round(FFromCoin(ActualMap["TERA"]));
+            else
+            if(AccObj.Currency===Storage.USDNum)
+                Sum=Round(FFromCoin(ActualMap["USD"]));
+            else
+            if(AccObj.Currency===Storage.DAONum)
+                Sum=Round(FFromCoin(ActualMap["DAO"],1));
+            $(idSum).value=Sum;
+        }
+    }
+    function AllSumInvest(idSum)
+    {
+        var Action=InvestMode();
+        var Sum=0;
+        if(Action.Mode==="Add")
+            Sum=Round(FFromCoin(ActualMap["TERA"]));
+        else
+            Sum=Round(FFromCoin(ActualMap["DAO"],1));
+        $(idSum).value=Sum;
+    }
+    function AllSumSwap(idSum)
+    {
+        var Mode=$("idSwap").value;
+        var Sum=0;
+        if(Mode==="TeraToUSD")
+            Sum=Round(FFromCoin(ActualMap["TERA"]));
+        else
+            Sum=Round(FFromCoin(ActualMap["USD"]));
+        $(idSum).value=Sum;
+    }
+    function ReReadState()
+    {
+        var Data={};
+        var Arr=["CanSwap","LiqMaska","KFee","KReserveNew","VoteLib","WalletLib","ProcessLib","USDNum","DAONum", "FreezeTime", "HTMLBlock","HTMLTr"];
+        if(Storage)
+            for(var i=0;i<Arr.length;i++)
+                Data[Arr[i]]=Storage[Arr[i]];
+        $("idState").value=JSON.stringify(Data,"",4);
+    }
+    function RSum(idSum)
+    {
+        var Sum=Round($(idSum).value);
+        return Sum;
+    }
+    function SendMethod(Name,idSum,Params)
+    {
+        if(!MaxUserAcc)
+            return SetError("You don't have any user accounts");
+        if(!Params)
+            Params={};
+        if(idSum)
+        {
+            Params.Sum=RSum(idSum);
+            if(!Params.Sum)
+                return SetError("Need specify the amount")
+        }
+        SendCall(0,Name,Params,[],MaxUserAcc);
+    }
+    function SetConf()
+    {
+        var Params=JSON.parse($("idState").value);
+        SendCall(0,"SetConf",Params,[],SMART.Owner);
+    }
+    function SendDeposit(idAcc,idSum)
+    {
+        var Num=+$(idAcc).value;
+        if(!Num)
+            return SetError("Not select account");
+        var Params={Sum:RSum(idSum)};
+        SendCall(Num,"Deposit",Params,[],Num);
+    }
+    function SendWithdraw(idAcc,idSum)
+    {
+        var Num=+$(idAcc).value;
+        if(!Num)
+            return SetError("Not selected account");
+        var Params={Sum:RSum(idSum),ToNum:Num};
+        SendCall(0,"Withdraw",Params,[],MaxUserAcc);
+    }
+    function SendAccount()
+    {
+        var Params={Account:+$("idSetAccount").value};
+        SendCall(0,"SetWalletAccount",Params,[],0);
+    }
+    function CreateNew(Mode)
+    {
+        if(!Mode)
+            CreateNewAccount(0);
+        else
+        {
+            if(!Storage)
+                return;
+            var Num=Storage[Mode+"Num"];
+            if(Num)
+                CreateNewAccount(Num);
+        }
+    }
+</script>
+<style>
+    /*TAB TAB*/
+    .wrapper {
+        max-width: 1110px;
+        margin: 0 auto; }
+    .logo {
+        display: block;
+        margin-left: auto;
+        margin-right: auto; }
+    .header {
+        height: 60px;
+        background-color: #445368; }
+    .header__group {
+        display: -webkit-box;
+        display: -webkit-flex;
+        display: -ms-flexbox;
+        display: flex;
+        -webkit-box-align: center;
+        -webkit-align-items: center;
+        -ms-flex-align: center;
+        align-items: center;
+        height: 59px; }
+    .header__menu {
+        margin-left: 258px; }
+    html {
+        font-size: 16px;
+        font-family: 'Roboto', sans-serif;
+        font-weight: 400;
+        background-color: #202731;
+        color: #FFFFFF; }
+    :root
+    {
+        --colorTabB1: rgba(255, 255, 255, 0.6);
+        --colorTabB2: #445368;
+        --colorTabB3: #53687e;
+    }
+    table
+    {
+        border-collapse: collapse;
+        max-width: 700px;
+        width: 95vw;
+    }
+    .TabMenu
+    {
+        z-index:1000;
+        top:0;
+    }
+    .TabMenu th
+    {
+        color: var(--colorTabB1);
+        background-color: var(--colorTabB2);
+        margin: 0;
+        padding: 1px;
+        font-family: Helvetica,Arial,sans-serif;
+        font-size: 13px;
+        font-weight:100;
+        align-content: center;
+        min-width: 50px;
+        border: 1px solid white;
+        vertical-align:middle;
+    }
+    .bttab
+    {
+        color: var(--colorTabB1);
+        background-color: var(--colorTabB2);
+        width: 100%;
+        height: 44px;
+        line-height:44px;
+        margin-left: 0px;
+        vertical-align: center;
+        text-align: center;
+    }
+    .btsub
+    {
+        color: var(--colorTabB2);
+        background-color: var(--colorTabB1);
+        width: 100%;
+        height: 26px;
+        line-height:26px;
+        margin-left: 0px;
+        vertical-align: center;
+        text-align: center;
+    }
+    .btsub:hover,.bttab:hover
+    {
+        cursor: pointer;
+        color: #ffffff;
+    }
+    .current
+    {
+        color: white;
+        background-color: var(--colorTabB3);
+    }
+    .tabitem
+    {
+        font-size: 14px; width: 300px;text-align: left;
+    }
+    .accselect
+    {
+        width: 300px;
+        margin: 5px 0 10px 0;
+        font-size: 14px;
+    }
+    .accsum
+    {
+        width: 100px;
+        margin: 5px 0 10px 0;
+        font-size: 14px;
+    }
+    .btrun
+    {
+        height: 30px;
+        padding 5px;
+        min-width: 100px;
+        border-radius: 5px;
+        color: white;
+        background-color: var(--colorTabB2);
+        border: 0;
+        cursor: pointer;
+    }
+    .btrun:hover
+    {
+        color: #ffffff;
+    }
+    .btrun[disabled]
+    {
+        color: gray;
+        background-color: var(--colorTabB3);
+    }
+    #idInfo
+    {
+        border: 1px solid black;
+        text-align: left;
+        margin-bottom:5px;
+        background-color: #202731;
+    }
+    .tinfo
+    {
+        min-width: 200px;
+        max-width: 300px;
+    }
+    #idInfo th,.tinfo th
+    {
+        margin: 0;
+        padding: 0;
+        height: 24px;
+        font-family: Helvetica,Arial,sans-serif;
+        font-size: 12px;
+        text-align: center;
+        border: 1px solid var(--colorTabB2);
+        vertical-align:middle;
+    }
+    .curname
+    {
+        font-weight: 100;
+    }
+    .tcurr
+    {
+        color: #0ACA13;
+    }
+    .dcurr
+    {
+        color: #ACEEFF;
+    }
+    .accnum
+    {
+        color: #DDD;
+    }
+    .tcomment
+    {
+        font-size: 13px;
+        color:var(--colorTabB2);
+    }
+    #idCanvas
+    {
+        border: 1px solid var(--colorTabB2);
+    }
+</style>
+<header class="header">
+    <div class="header__group wrapper">
+        <div class="logo">
+            <img align="center" src="/file/71403603/0" alt="Tera ReservedUSD">
+        </div>
+    </div>
+</header>
+<DIV align='center'>
+    <INPUT id="idCurTabName" value="TabStart" style="display: none">
+    <table class="TabMenu">
+        <tr>
+            <th><DIV id="MTabStart" onclick="SelectTab(this)" class="bttab">INFO</DIV></th>
+            <th><DIV id="MTabSwap" onclick="SelectTab(this)" class="bttab">SWAP</DIV></th>
+            <th><DIV id="MTabInvest" onclick="SelectTab(this)" class="bttab">INVEST</DIV></th>
+            <!--<th><DIV id="MTabVote" onclick="SelectTab(this)" class="bttab">VOTE</DIV></th>-->
+            <th><DIV id="MTabDeposit" onclick="SelectTab(this)" class="bttab">DEPOSIT</DIV></th>
+            <th id="idTabOwner"><DIV id="MTabOperate" onclick="SelectTab(this)" class="bttab">OWNER</DIV></th>
+        </tr>
+    </table>
+    <table id="idInfo">
+        <tr>
+            <th style="width: 20%"></th>
+            <th><span class='curname'> TERA</span></th>
+            <th><span class='curname'> USD</span></th>
+            <th><span class='curname'> DAO</span></th>
+        </tr>
+        <tr>
+            <th style="width: 20%">Deposit</th>
+            <th><span id="idDepTera" class="tcurr"></span></th>
+            <th><span id="idDepUSD" class="tcurr"></span></th>
+            <th><span id="idDepDAO" class="tcurr"></span></th>
+        </tr>
+        <tr id="idPoolRow">
+            <th style="width: 20%">Pool</th>
+            <th><span id="idPoolTera"></span></th>
+            <th><span id="idPoolUSD"></span></th>
+            <th><span></span></th>
+        </tr>
+        <tr id="idMintedRow">
+            <th style="width: 20%">Minted</th>
+            <th><span id="idAllTera"></span>*</th>
+            <th><span id="idAllUSD"></span></th>
+            <th><span id="idAllDAO"></span></th>
+        </tr>
+    </table>
+    <span id="idCommInfo" class="tcomment">*The number of TERA coins that are reserved for a stable coin</span>
+    <BR><BR>
+    <!--Start-->
+    <DIV id="TabStart"  style="display: none;" align="center">
+        <DIV class="tabitem">
+            <table class="tinfo">
+                <tr>
+                    <th>Price 1 DAO</th>
+                    <th><span id="idIRateLiq"></span><span class='curname'> TERA</span></th>
+                </tr>
+                <tr>
+                    <th>Price 1 TERA</th>
+                    <th><span id="idIRate"></span><span class='curname'> USD</span></th>
+                </tr>
+                <tr>
+                    <th>Swap Fee</th>
+                    <th><span id="idIFee"></span></th>
+                </tr>
+                <tr>
+                    <th>Reserve Rate</th>
+                    <th><span id="idIReserve"></span></th>
+                </tr>
+                <tr>
+                    <th>Volume Tera swap</th>
+                    <th><span id="idITeraSwap"></span></th>
+                </tr>
+                <tr>
+                    <th>Volume USD swap</th>
+                    <th><span id="idIUSDSwap"></span></th>
+                </tr>
+            </table>
+        </DIV>
+    </DIV>
+    <!--Deposit-->
+    <DIV id="TabDeposit"  style="display: none;" align="center">
+        <table class="TabMenu">
+            <tr>
+                <th><DIV id="MSubDeposit" onclick="SelectTab(this)" class="btsub">Deposit</DIV></th>
+                <th><DIV id="MSubWithdraw" onclick="SelectTab(this)" class="btsub">Withdraw</DIV></th>
+            </tr>
+        </table>
+        <BR><BR>
+        <DIV class="tabitem" id="SubDeposit" style="display: none;">
+            Select the sender's account number:
+            <br>
+            <select size="1" id="idAccD" class="accselect">
+                <option value="0">Loading...</option>
+            </select>
+            Specify the amount:
+            <input id="idSumD" class="accsum"><button onclick="AllSumAcc('idSumD','idAccD')">all</button><BR>
+            <button onclick="SendDeposit('idAccD','idSumD');PasueBt(this);" class="btrun">DEPOSIT</button>
+            <BR><BR><BR>
+            <DIV class="tcomment">
+                You can also top up your deposit by sending coins directly from your wallet to these accounts:<BR>
+                <b id="idAccTera" class="accnum">11111</b> for TERA<BR>
+                <b id="idAccUSD" class="accnum">22222</b> for USD<BR>
+                <b id="idAccDAO" class="accnum">33333</b> for DAO<BR>
+            </DIV>
+        </DIV>
+        <!--bWithdraw-->
+        <DIV class="tabitem" id="SubWithdraw" style="display: none;">
+            Select the recipient's account number:
+            <br>
+            <select size="1" id="idAccW" class="accselect">
+                <option value="0">Loading...</option>
+            </select>
+            <DIV>
+                <button onclick="CreateNew()">New TERA</button>
+                <button onclick="CreateNew('USD')">New USD</button>
+                <button onclick="CreateNew('DAO')">New DAO</button>
+            </DIV>
+            <BR>
+            Specify the amount:
+            <input id="idSumW" class="accsum"><button onclick="AllSumW('idSumW','idAccW')">all</button><BR>
+            <button onclick="SendWithdraw('idAccW','idSumW');PasueBt(this);" class="btrun">WITHDRAW</button>
+            <BR><BR><BR>
+            <DIV class="tcomment">
+                You can also make withdrawals by sending a zero amount directly from your wallet to these accounts (specifying the number of withdrawal coins in the description):<BR>
+                <b id="idAccTera2" class="accnum">11111</b> for TERA<BR>
+                <b id="idAccUSD2" class="accnum">22222</b> for USD<BR>
+                <b id="idAccDAO2" class="accnum">33333</b> for DAO<BR>
+            </DIV>
+        </DIV>
+    </DIV>
+    <!--Swap-->
+    <DIV id="TabSwap"  style="display: none;" align="center">
+        <DIV class="tabitem">
+            Select swap mode:<BR>
+            <select size="1" id="idSwap" class="accselect" onchange="SwapInfo()">
+                <option value="TeraToUSD">Tera &#8594; USD</option>
+                <option value="USDToTera">USD &#8594; Tera</option>
+            </select>
+            <BR>
+            Specify the amount:
+            <input id="idSumSwap" class="accsum" onchange="SwapInfo()"><button onclick="AllSumSwap('idSumSwap')">all</button><BR>
+            <table class="tinfo">
+                <tr>
+                    <th>Send</th>
+                    <th><span id="idSumSwap1" class="dcurr"></span><span id="idCurSwap1" class='curname'></span></th>
+                </tr>
+                <tr>
+                    <th>Receive</th>
+                    <th><span id="idSumSwap2" class="dcurr"></span><span id="idCurSwap2" class='curname'></span></th>
+                </tr>
+                <tr>
+                    <th>Price 1 TERA</th>
+                    <th><span id="idRateSwap" class="dcurr"></span><span class='curname'> USD</span></th>
+                </tr>
+            </table>
+            <BR>
+            <button onclick="RunSwap();PasueBt(this);" class="btrun">SWAP</button>
+        </DIV>
+    </DIV>
+    <!--Invest-->
+    <DIV id="TabInvest"  style="display: none;" align="center">
+        <DIV class="tabitem">
+            Select mode:<BR>
+            <select size="1" id="idLiq" class="accselect" onchange="LiqInfo()">
+                <option value="Add4">Send to TERA/USD pools</option>
+                <option value="Add1">Send to TERA pool</option>
+                <option value="Add2">Send to USD pool</option>
+                <option value="Remove">Remove liquidity (get TERA)</option>
+            </select>
+            <BR>
+            Specify the amount:
+            <input id="idSumLiq" class="accsum" onchange="LiqInfo()"><button onclick="AllSumInvest('idSumLiq')">all</button><BR>
+            <table class="tinfo">
+                <tr>
+                    <th>Send</th>
+                    <th><span id="idSumLiq1" class="dcurr"></span><span id="idCurLiq1" class='curname'></span></th>
+                </tr>
+                <tr>
+                    <th>Receive</th>
+                    <th><span id="idSumLiq2" class="dcurr"></span><span id="idCurLiq2" class='curname'></span></th>
+                </tr>
+                <tr id="idRowInv">
+                    <th>Price 1 TERA</th>
+                    <th><span id="idSwapInv" class="dcurr"></span><span class='curname'> USD</span></th>
+                </tr>
+                <tr>
+                    <th>Price 1 DAO</th>
+                    <th><span id="idRateLiq" class="dcurr"></span><span class='curname'> TERA</span></th>
+                </tr>
+            </table>
+            <BR>
+            <button id="idLiqBt" onclick="RunLiq();PasueBt(this);" class="btrun">----</button>
+        </DIV>
+    </DIV>
+    <!--Vote-->
+    <DIV id="TabVote"  style="display: none;" align="center">
+        <DIV class="tabitem">
+            <h3>The possibility of voting will appear in the near future.</h3>
+        </DIV>
+    </DIV>
+    <!--Operate-->
+    <DIV id="TabOperate"  style="display: none;" align="center">
+        <DIV class="tabitem">
+            <BR>Info:<BR>
+            <textarea id="idKeyInfo"  rows="12" cols="10" style="width:99%"></textarea>
+            <br><br>
+            Conf:
+            <br>
+            <TEXTAREA id="idState" rows="9" cols="40" style="width:99%"></TEXTAREA>
+            <br><button onclick="ReReadState()">Read</button>
+            <button onclick="SetConf()">Set conf</button>
+            <button onclick="SendMethod('Rebalance')">Rebalance</button>
+            <BR><BR>
+            <input id="idSetAccount" type="number" value="">
+            <button onclick="SendAccount()">Set Account</button>
+        </DIV>
+    </DIV>
+</DIV>

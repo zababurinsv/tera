@@ -1,0 +1,82 @@
+<script>
+
+
+    window.onload=function ()
+    {
+
+        var KSwap=0.003;//1000 и 3
+
+        DrawXY(KSwap,3000,"#0A0",1);
+        DrawXY(KSwap,6000,"#00A");
+        DrawXY(KSwap,12000,"#A00");
+    };
+
+    function DrawXY(KSwap,K,color,bClear)
+    {
+        var id="idMain";
+        var obj = document.getElementById(id);
+        var ctx     = obj.getContext('2d');
+
+        ctx.fillStyle = "#FFF";
+        if(bClear)
+            ctx.fillRect(0, 0, obj.width, obj.height);
+
+        var MaxX=obj.width-10;
+        var MaxY=obj.height-10;
+
+
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+
+
+
+        var bWasSwap=0;
+        for(var x=1;x<MaxX;x++)
+        {
+            var X=x*10;
+            var Y=K/X;
+            var Rate=Y/X;
+            var y=MaxY - Y;
+            if(y<0)
+                continue;
+
+            if(x===1)
+                ctx.moveTo(x,y);
+            else
+                ctx.lineTo(x,y);
+
+
+            if(!bWasSwap && KSwap>Rate)
+            {
+                bWasSwap=1;
+                ctx.arc(x,y,1,0,2 * Math.PI);
+                ctx.moveTo(x,y);
+                //ToLog({X,Y,Rate})
+            }
+        }
+        ctx.stroke();
+    }
+
+</script>
+
+
+<style>
+    body
+    {
+        background-color: #EEE;
+        color: white;
+    }
+
+    .diagram
+    {
+        width: 100%;
+        max-width: 400px;
+        height: 50vh;
+        border: 1px solid #000;
+    }
+</style>
+
+<canvas  class="diagram"  id='idMain'></canvas>
+
+
+

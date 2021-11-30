@@ -1,0 +1,285 @@
+<script>
+
+    function RunTransfer()
+    {
+        var Params={Count:4};
+        SendCall(0,"TransferProcess",Params,[],SMART.Owner);
+    }
+
+
+    /*
+    Logs:
+
+30009: 09:26:19.119: Send: OK on Block 69779727
+30009: 09:26:27.349: Start from=-1
+30009: 09:26:27.350: Run: 0 Send: 2
+30009: 09:26:27.351: {"SumCOIN":2,"SumCENT":0,"Flag":0,"Freeze":{"Sum":2,"Block":123,"Finish":0}}
+30009: 09:26:27.352: Run: 1 Send: 7.000001
+30009: 09:26:27.353: {"SumCOIN":7,"SumCENT":1000,"Flag":0,"Freeze":{"Sum":7.000001,"Block":123,"Finish":0}}
+30009: 09:26:27.353: Run: 2 Send: 10
+30009: 09:26:27.354: {"SumCOIN":110,"SumCENT":0,"Flag":0,"Freeze":{"Sum":10,"Block":123,"Finish":0}}
+30009: 09:26:27.355: Run: 3 Send: 12
+30009: 09:26:27.356: {"SumCOIN":12,"SumCENT":0,"Flag":0,"Freeze":{"Sum":12,"Block":123,"Finish":0}}
+30009: 09:26:27.357: Send tx=31.000001
+30009: 09:26:27.357: Total  =31.000001
+30009: 09:26:27.358: Add to blockchain on Block 69779727
+30009: 09:26:27.768: 9.SaveChainToDB: {69779727 M:221173 Tx:1 Pow:45} Was Pow=43  COUNT=1
+30009: 09:26:37.542: 9.SaveChainToDB: {69779730 M:224971 Tx:0 Pow:46} Was Pow=42  COUNT=1
+30009: 09:26:46.495: Send: OK on Block 69779736
+30009: 09:26:49.157: Send: OK on Block 69779737
+30009: 09:26:50.082: Send: OK on Block 69779737
+30009: 09:26:54.610: Start from=3
+30009: 09:26:54.610: Run: 4 Send: 98.880001
+30009: 09:26:54.611: {"SumCOIN":98,"SumCENT":880001000,"Flag":0,"Freeze":{"Sum":98.880001,"Block":123,"Finish":0}}
+30009: 09:26:54.611: Run: 5 Send: 100
+30009: 09:26:54.613: {"SumCOIN":100,"SumCENT":0,"Flag":0,"Freeze":{"Sum":100,"Block":123,"Finish":0}}
+30009: 09:26:54.613: Run: 6 Send: 100
+30009: 09:26:54.614: {"SumCOIN":100,"SumCENT":0,"Flag":0,"Freeze":{"Sum":100,"Block":123,"Finish":0}}
+30009: 09:26:54.614: Run: 7 Send: 100
+30009: 09:26:54.615: {"SumCOIN":100,"SumCENT":0,"Flag":0,"Freeze":{"Sum":100,"Block":123,"Finish":0}}
+30009: 09:26:54.618: Send tx=398.880001
+30009: 09:26:54.618: Total  =429.880002
+30009: 09:26:54.618: Add to blockchain on Block 69779736
+30009: 09:26:57.038: Start from=7
+30009: 09:26:57.039: Run: 8 Send: 100.000001
+30009: 09:26:57.040: {"SumCOIN":100,"SumCENT":1000,"Flag":0,"Freeze":{"Sum":100.000001,"Block":123,"Finish":0}}
+30009: 09:26:57.040: Run: 9 Send: 129.122705
+30009: 09:26:57.042: {"SumCOIN":129,"SumCENT":122705000,"Flag":0,"Freeze":{"Sum":129.122705,"Block":123,"Finish":0}}
+30009: 09:26:57.043: Run: 10 Send: 200
+30009: 09:26:57.044: {"SumCOIN":200,"SumCENT":0,"Flag":0,"Freeze":{"Sum":200,"Block":123,"Finish":0}}
+30009: 09:26:57.044: Run: 11 Send: 200.608834
+30009: 09:26:57.045: {"SumCOIN":200,"SumCENT":608834000,"Flag":0,"Freeze":{"Sum":200.608834,"Block":123,"Finish":0}}
+30009: 09:26:57.046: Send tx=629.73154
+30009: 09:26:57.047: Total  =1059.611542
+30009: 09:26:57.047: Add to blockchain on Block 69779737
+30009: 09:26:57.048: Start from=11
+30009: 09:26:57.048: Run: 12 Send: 205.493457
+30009: 09:26:57.049: {"SumCOIN":205,"SumCENT":493457000,"Flag":0,"Freeze":{"Sum":205.493457,"Block":123,"Finish":0}}
+30009: 09:26:57.049: Run: 13 Send: 427.570117
+30009: 09:26:57.050: {"SumCOIN":427,"SumCENT":570117000,"Flag":0,"Freeze":{"Sum":427.570117,"Block":123,"Finish":0}}
+30009: 09:26:57.050: Run: 14 Send: 812.7696960000321
+30009: 09:26:57.051: {"SumCOIN":812,"SumCENT":769696000,"Flag":0,"Freeze":{"Sum":812.769696,"Block":123,"Finish":0}}
+30009: 09:26:57.051: Run: 15 Send: 1256
+30009: 09:26:57.051: {"SumCOIN":1256,"SumCENT":0,"Flag":0,"Freeze":{"Sum":1256,"Block":123,"Finish":0}}
+30009: 09:26:57.052: Send tx=2701.833270000032
+30009: 09:26:57.052: Total  =3761.4448120000325
+30009: 09:26:57.053: Add to blockchain on Block 69779737
+30009: 09:26:58.184: Send: OK on Block 69779740
+30009: 09:26:58.945: Send: OK on Block 69779740
+30009: 09:27:00.070: 9.SaveChainToDB: {69779738 M:222572 Tx:0 Pow:45} Was Pow=43  COUNT=1
+30009: 09:27:00.089: Send: OK on Block 69779741
+30009: 09:27:00.923: Send: OK on Block 69779741
+30009: 09:27:01.820: Send: OK on Block 69779741
+30009: 09:27:02.664: Send: OK on Block 69779741
+30009: 09:27:03.531: Send: OK on Block 69779742
+30009: 09:27:06.149: Start from=15
+30009: 09:27:06.149: Run: 16 Send: 1460
+30009: 09:27:06.150: {"SumCOIN":1460,"SumCENT":0,"Flag":0,"Freeze":{"Sum":1460,"Block":123,"Finish":0}}
+30009: 09:27:06.150: Run: 17 Send: 2000
+30009: 09:27:06.151: {"SumCOIN":2000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":2000,"Block":123,"Finish":0}}
+30009: 09:27:06.151: Run: 18 Send: 3769
+30009: 09:27:06.152: {"SumCOIN":3769,"SumCENT":0,"Flag":0,"Freeze":{"Sum":3769,"Block":123,"Finish":0}}
+30009: 09:27:06.152: Run: 19 Send: 4812.906587
+30009: 09:27:06.154: {"SumCOIN":4812,"SumCENT":906587000,"Flag":0,"Freeze":{"Sum":4812.906587,"Block":123,"Finish":0}}
+30009: 09:27:06.155: Send tx=12041.906587000001
+30009: 09:27:06.155: Total  =15803.351399000032
+30009: 09:27:06.156: Add to blockchain on Block 69779740
+30009: 09:27:06.156: Start from=19
+30009: 09:27:06.157: Run: 20 Send: 4900
+30009: 09:27:06.157: {"SumCOIN":4900,"SumCENT":0,"Flag":0,"Freeze":{"Sum":4900,"Block":123,"Finish":0}}
+30009: 09:27:06.157: Run: 21 Send: 9999.309061
+30009: 09:27:06.158: {"SumCOIN":9999,"SumCENT":309061000,"Flag":0,"Freeze":{"Sum":9999.309061,"Block":123,"Finish":0}}
+30009: 09:27:06.159: Run: 22 Send: 10000
+30009: 09:27:06.159: {"SumCOIN":10000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":10000,"Block":123,"Finish":0}}
+30009: 09:27:06.159: Run: 23 Send: 10000
+30009: 09:27:06.160: {"SumCOIN":10000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":10000,"Block":123,"Finish":0}}
+30009: 09:27:06.160: Send tx=34899.309061
+30009: 09:27:06.161: Total  =50702.66046000003
+30009: 09:27:06.161: Add to blockchain on Block 69779740
+30009: 09:27:09.194: 9.SaveChainToDB: {69779741 M:222580 Tx:4 Pow:44} Was Pow=43  COUNT=2
+30009: 09:27:09.199: Start from=23
+30009: 09:27:09.199: Run: 24 Send: 10000
+30009: 09:27:09.199: {"SumCOIN":10000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":10000,"Block":123,"Finish":0}}
+30009: 09:27:09.199: Run: 25 Send: 10005.262142
+30009: 09:27:09.200: {"SumCOIN":10005,"SumCENT":262142000,"Flag":0,"Freeze":{"Sum":10005.262142,"Block":123,"Finish":0}}
+30009: 09:27:09.201: Run: 26 Send: 10775
+30009: 09:27:09.201: {"SumCOIN":10775,"SumCENT":0,"Flag":0,"Freeze":{"Sum":10775,"Block":123,"Finish":0}}
+30009: 09:27:09.201: Run: 27 Send: 10824.95171200001
+30009: 09:27:09.202: {"SumCOIN":10824,"SumCENT":951712000,"Flag":0,"Freeze":{"Sum":10824.951712,"Block":123,"Finish":0}}
+30009: 09:27:09.204: Send tx=41605.21385400001
+30009: 09:27:09.205: Total  =92307.87431400004
+30009: 09:27:09.205: Add to blockchain on Block 69779741
+30009: 09:27:09.205: Start from=27
+30009: 09:27:09.206: Run: 28 Send: 15252
+30009: 09:27:09.206: {"SumCOIN":15252,"SumCENT":0,"Flag":0,"Freeze":{"Sum":15252,"Block":123,"Finish":0}}
+30009: 09:27:09.206: Run: 29 Send: 20000
+30009: 09:27:09.206: {"SumCOIN":20000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":20000,"Block":123,"Finish":0}}
+30009: 09:27:09.207: Run: 30 Send: 20000
+30009: 09:27:09.207: {"SumCOIN":20000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":20000,"Block":123,"Finish":0}}
+30009: 09:27:09.207: Run: 31 Send: 20000
+30009: 09:27:09.208: {"SumCOIN":20000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":20000,"Block":123,"Finish":0}}
+30009: 09:27:09.209: Send tx=75252
+30009: 09:27:09.209: Total  =167559.87431400004
+30009: 09:27:09.209: Add to blockchain on Block 69779741
+30009: 09:27:09.209: Start from=31
+30009: 09:27:09.210: Run: 32 Send: 29312
+30009: 09:27:09.210: {"SumCOIN":29312,"SumCENT":0,"Flag":0,"Freeze":{"Sum":29312,"Block":123,"Finish":0}}
+30009: 09:27:09.210: Run: 33 Send: 32299
+30009: 09:27:09.210: {"SumCOIN":32299,"SumCENT":0,"Flag":0,"Freeze":{"Sum":32299,"Block":123,"Finish":0}}
+30009: 09:27:09.211: Run: 34 Send: 33555
+30009: 09:27:09.211: {"SumCOIN":33555,"SumCENT":0,"Flag":0,"Freeze":{"Sum":33555,"Block":123,"Finish":0}}
+30009: 09:27:09.211: Run: 35 Send: 36000
+30009: 09:27:09.212: {"SumCOIN":36000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":36000,"Block":123,"Finish":0}}
+30009: 09:27:09.212: Send tx=131166
+30009: 09:27:09.212: Total  =298725.874314
+30009: 09:27:09.213: Add to blockchain on Block 69779741
+30009: 09:27:09.213: Start from=35
+30009: 09:27:09.213: Run: 36 Send: 40000
+30009: 09:27:09.219: {"SumCOIN":40000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":40000,"Block":123,"Finish":0}}
+30009: 09:27:09.220: Run: 37 Send: 40672.8
+30009: 09:27:09.220: {"SumCOIN":40672,"SumCENT":800000000,"Flag":0,"Freeze":{"Sum":40672.8,"Block":123,"Finish":0}}
+30009: 09:27:09.220: Run: 38 Send: 40701.925641
+30009: 09:27:09.220: {"SumCOIN":40701,"SumCENT":925641000,"Flag":0,"Freeze":{"Sum":40701.925641,"Block":123,"Finish":0}}
+30009: 09:27:09.221: Run: 39 Send: 47900
+30009: 09:27:09.221: {"SumCOIN":47900,"SumCENT":0,"Flag":0,"Freeze":{"Sum":47900,"Block":123,"Finish":0}}
+30009: 09:27:09.221: Send tx=169274.725641
+30009: 09:27:09.221: Total  =468000.599955
+30009: 09:27:09.222: Add to blockchain on Block 69779741
+30009: 09:27:12.241: Start from=39
+30009: 09:27:12.242: Run: 40 Send: 50000
+30009: 09:27:12.243: {"SumCOIN":50000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":50000,"Block":123,"Finish":0}}
+30009: 09:27:12.243: Run: 41 Send: 50000
+30009: 09:27:12.244: {"SumCOIN":50000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":50000,"Block":123,"Finish":0}}
+30009: 09:27:12.244: Run: 42 Send: 50677.047999999995
+30009: 09:27:12.244: {"SumCOIN":50677,"SumCENT":47999999,"Flag":0,"Freeze":{"Sum":50677.047999999,"Block":123,"Finish":0}}
+30009: 09:27:12.244: Run: 43 Send: 54542.852513
+30009: 09:27:12.245: {"SumCOIN":54542,"SumCENT":852513000,"Flag":0,"Freeze":{"Sum":54542.852513,"Block":123,"Finish":0}}
+30009: 09:27:12.246: Send tx=205219.900513
+30009: 09:27:12.247: Total  =673220.500468
+30009: 09:27:12.247: Add to blockchain on Block 69779742
+30009: 09:27:14.462: 9.SaveChainToDB: {69779742 M:224980 Tx:1 Pow:44} Was Pow=43  COUNT=3
+30009: 09:27:24.971: 9.SaveChainToDB: {69779746 M:224971 Tx:0 Pow:45} Was Pow=44  COUNT=1
+30009: 09:27:35.066: 9.SaveChainToDB: {69779749 M:221081 Tx:0 Pow:46} Was Pow=45  COUNT=1
+30009: 09:27:37.069: 9.SaveChainToDB: {69779750 M:212221 Tx:1 Pow:45} Was Pow=44  COUNT=1
+30009: 09:27:50.058: 9.SaveChainToDB: {69779754 M:211211 Tx:0 Pow:47} Was Pow=44  COUNT=1
+30009: 09:27:50.481: Send: OK on Block 69779757
+30009: 09:27:51.002: Send: OK on Block 69779758
+30009: 09:27:51.125: 9.SaveChainToDB: {69779755 M:224971 Tx:0 Pow:43} Was Pow=45  COUNT=2
+30009: 09:27:51.472: Send: OK on Block 69779758
+30009: 09:27:51.945: Send: OK on Block 69779758
+30009: 09:27:52.420: Send: OK on Block 69779758
+30009: 09:27:52.889: Send: OK on Block 69779758
+30009: 09:27:53.328: Send: OK on Block 69779758
+30009: 09:27:53.800: Send: OK on Block 69779758
+30009: 09:27:54.379: Send: OK on Block 69779759
+30009: 09:27:54.739: Send: OK on Block 69779759
+30009: 09:27:57.079: Start from=43
+30009: 09:27:57.079: Run: 44 Send: 61001
+30009: 09:27:57.083: {"SumCOIN":61001,"SumCENT":0,"Flag":0,"Freeze":{"Sum":61001,"Block":123,"Finish":0}}
+30009: 09:27:57.083: Run: 45 Send: 71581.964
+30009: 09:27:57.084: {"SumCOIN":71581,"SumCENT":964000000,"Flag":0,"Freeze":{"Sum":71581.964,"Block":123,"Finish":0}}
+30009: 09:27:57.084: Run: 46 Send: 76269
+30009: 09:27:57.085: {"SumCOIN":76269,"SumCENT":0,"Flag":0,"Freeze":{"Sum":76269,"Block":123,"Finish":0}}
+30009: 09:27:57.085: Run: 47 Send: 85400.096459
+30009: 09:27:57.085: {"SumCOIN":85400,"SumCENT":96459000,"Flag":0,"Freeze":{"Sum":85400.096459,"Block":123,"Finish":0}}
+30009: 09:27:57.086: Send tx=294252.060459
+30009: 09:27:57.086: Total  =967472.560927
+30009: 09:27:57.087: Add to blockchain on Block 69779757
+30009: 09:28:00.123: Start from=47
+30009: 09:28:00.123: Run: 48 Send: 87037.950326
+30009: 09:28:00.125: {"SumCOIN":87037,"SumCENT":950326000,"Flag":0,"Freeze":{"Sum":87037.950326,"Block":123,"Finish":0}}
+30009: 09:28:00.126: Run: 49 Send: 96575.26
+30009: 09:28:00.126: {"SumCOIN":96575,"SumCENT":260000000,"Flag":0,"Freeze":{"Sum":96575.26,"Block":123,"Finish":0}}
+30009: 09:28:00.126: Run: 50 Send: 100000
+30009: 09:28:00.127: {"SumCOIN":100000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":100000,"Block":123,"Finish":0}}
+30009: 09:28:00.127: Run: 51 Send: 113308.563489
+30009: 09:28:00.128: {"SumCOIN":113308,"SumCENT":563489000,"Flag":0,"Freeze":{"Sum":113308.563489,"Block":123,"Finish":0}}
+30009: 09:28:00.128: Send tx=396921.77381499996
+30009: 09:28:00.129: Total  =1364394.334742
+30009: 09:28:00.129: Add to blockchain on Block 69779758
+30009: 09:28:00.130: Start from=51
+30009: 09:28:00.130: Run: 52 Send: 118278.63692
+30009: 09:28:00.130: {"SumCOIN":118278,"SumCENT":636920000,"Flag":0,"Freeze":{"Sum":118278.63692,"Block":123,"Finish":0}}
+30009: 09:28:00.131: Run: 53 Send: 121000
+30009: 09:28:00.131: {"SumCOIN":121000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":121000,"Block":123,"Finish":0}}
+30009: 09:28:00.131: Run: 54 Send: 123042.51999999999
+30009: 09:28:00.132: {"SumCOIN":123042,"SumCENT":519999999,"Flag":0,"Freeze":{"Sum":123042.519999999,"Block":123,"Finish":0}}
+30009: 09:28:00.132: Run: 55 Send: 124834.69188
+30009: 09:28:00.134: {"SumCOIN":124834,"SumCENT":691880000,"Flag":0,"Freeze":{"Sum":124834.69188,"Block":123,"Finish":0}}
+30009: 09:28:00.134: Send tx=487155.8488
+30009: 09:28:00.134: Total  =1851550.1835420001
+30009: 09:28:00.135: Add to blockchain on Block 69779758
+30009: 09:28:00.135: Start from=55
+30009: 09:28:00.136: Run: 56 Send: 141710.209799
+30009: 09:28:00.136: {"SumCOIN":141710,"SumCENT":209799000,"Flag":0,"Freeze":{"Sum":141710.209799,"Block":123,"Finish":0}}
+30009: 09:28:00.136: Run: 57 Send: 194000
+30009: 09:28:00.137: {"SumCOIN":194000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":194000,"Block":123,"Finish":0}}
+30009: 09:28:00.137: Run: 58 Send: 200001
+30009: 09:28:00.137: {"SumCOIN":200001,"SumCENT":0,"Flag":0,"Freeze":{"Sum":200001,"Block":123,"Finish":0}}
+30009: 09:28:00.137: Run: 59 Send: 222378.146
+30009: 09:28:00.138: {"SumCOIN":222378,"SumCENT":146000000,"Flag":0,"Freeze":{"Sum":222378.146,"Block":123,"Finish":0}}
+30009: 09:28:00.138: Send tx=758089.355799
+30009: 09:28:00.139: Total  =2609639.5393410004
+30009: 09:28:00.139: Add to blockchain on Block 69779758
+30009: 09:28:00.139: Start from=59
+30009: 09:28:00.140: Run: 60 Send: 291475.112319
+30009: 09:28:00.140: {"SumCOIN":291475,"SumCENT":112319000,"Flag":0,"Freeze":{"Sum":291475.112319,"Block":123,"Finish":0}}
+30009: 09:28:00.140: Run: 61 Send: 300000
+30009: 09:28:00.141: {"SumCOIN":316003,"SumCENT":543925103,"Flag":0,"Freeze":{"Sum":300000,"Block":123,"Finish":0}}
+30009: 09:28:00.141: Run: 62 Send: 361557.82
+30009: 09:28:00.143: {"SumCOIN":361557,"SumCENT":820000000,"Flag":0,"Freeze":{"Sum":361557.82,"Block":123,"Finish":0}}
+30009: 09:28:00.143: Run: 63 Send: 380500
+30009: 09:28:00.144: {"SumCOIN":389573,"SumCENT":262937188,"Flag":0,"Freeze":{"Sum":380500,"Block":123,"Finish":0}}
+30009: 09:28:00.144: Send tx=1333532.9323190001
+30009: 09:28:00.145: Total  =3943172.4716600003
+30009: 09:28:00.145: Add to blockchain on Block 69779758
+30009: 09:28:00.145: Start from=63
+30009: 09:28:00.146: Run: 64 Send: 400000
+30009: 09:28:00.147: {"SumCOIN":400000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":400000,"Block":123,"Finish":0}}
+30009: 09:28:00.147: Run: 65 Send: 500000
+30009: 09:28:00.148: {"SumCOIN":500000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":500000,"Block":123,"Finish":0}}
+30009: 09:28:00.148: Run: 66 Send: 500000
+30009: 09:28:00.148: {"SumCOIN":500000,"SumCENT":0,"Flag":0,"Freeze":{"Sum":500000,"Block":123,"Finish":0}}
+30009: 09:28:00.149: Run: 67 Send: 564597.992279
+30009: 09:28:00.149: {"SumCOIN":564597,"SumCENT":992279000,"Flag":0,"Freeze":{"Sum":564597.992279,"Block":123,"Finish":0}}
+30009: 09:28:00.150: Send tx=1964597.992279
+30009: 09:28:00.151: Total  =5907770.463939
+30009: 09:28:00.151: Add to blockchain on Block 69779758
+30009: 09:28:00.152: Start from=67
+30009: 09:28:00.152: Run: 68 Send: 925921.66
+30009: 09:28:00.152: {"SumCOIN":925921,"SumCENT":660000000,"Flag":0,"Freeze":{"Sum":925921.66,"Block":123,"Finish":0}}
+30009: 09:28:00.152: Run: 69 Send: 1010605
+30009: 09:28:00.153: {"SumCOIN":1012605,"SumCENT":0,"Flag":0,"Freeze":{"Sum":1010605,"Block":123,"Finish":0}}
+30009: 09:28:00.154: Run: 70 Send: 1025298.937873
+30009: 09:28:00.154: {"SumCOIN":1025298,"SumCENT":937873000,"Flag":0,"Freeze":{"Sum":1025298.937873,"Block":123,"Finish":0}}
+30009: 09:28:00.154: Run: 71 Send: 2064136.187527
+30009: 09:28:00.155: {"SumCOIN":2064136,"SumCENT":187527000,"Flag":0,"Freeze":{"Sum":2064136.187527,"Block":123,"Finish":0}}
+30009: 09:28:00.155: Send tx=5025961.7854
+30009: 09:28:00.155: Total  =10933732.249339
+30009: 09:28:00.156: Add to blockchain on Block 69779758
+30009: 09:28:00.156: Start from=71
+30009: 09:28:00.157: Run: 72 Send: 3314573.449964
+30009: 09:28:00.158: {"SumCOIN":3314573,"SumCENT":449964000,"Flag":0,"Freeze":{"Sum":3314573.449964,"Block":123,"Finish":0}}
+30009: 09:28:00.159: Send tx=3314573.449964
+30009: 09:28:00.159: Total  =14248305.699303
+30009: 09:28:00.159: Add to blockchain on Block 69779758
+30009: 09:28:03.187: Start from=72
+30009: 09:28:03.189: Send tx=0
+30009: 09:28:03.189: Total  =14248305.699303
+30009: 09:28:03.189: Add to blockchain on Block 69779759
+30009: 09:28:03.190: Start from=72
+30009: 09:28:03.190: Send tx=0
+30009: 09:28:03.191: Total  =14248305.699303
+
+
+     */
+
+</script>
+
+
+
+<div class="item">
+    <button onclick="RunTransfer()">Run transfer</button>
+</div>
+
+

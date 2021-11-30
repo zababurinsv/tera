@@ -1,0 +1,19 @@
+<script>
+
+    function RunTransfer()
+    {
+        var Params={Sum:+$("idSum").value};
+        SendCall(0,"LibProcess",Params,[],SMART.Owner);
+    }
+
+</script>
+
+
+
+<div class="item">
+    Sum:
+    <input id="idSum" type="number" value="">
+    <button onclick="RunTransfer()">Run transfer</button>
+</div>
+
+

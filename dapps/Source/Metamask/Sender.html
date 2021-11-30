@@ -1,0 +1,219 @@
+<script>
+
+
+    function Eth16(Sum)
+    {
+        return (Math.floor(Sum*1000000000000000000)).toString(16);
+    }
+    function GasPrise()
+    {
+        return ethereum.request({ method: 'eth_gasPrice',params:[] });
+    }
+
+    const onClickConnect = async function()
+    {
+        try
+        {
+            var res=await ethereum.request({ method: 'eth_requestAccounts' });
+        }
+        catch (error)
+        {
+            console.error(error);
+        }
+        if(res)
+        {
+
+            const netver = await ethereum.request({ method: 'net_version' });
+            console.log("netver:",netver);
+
+            const accounts = await ethereum.request({ method: 'eth_accounts' });
+            console.log("accounts:",accounts);
+
+            console.log("blockNumber:",await ethereum.request({ method: 'eth_blockNumber',params:[] }));
+            console.log("gasPrice:",await GasPrise());
+            console.log("Last Txs:",await ethereum.request({ method: 'eth_getBlockTransactionCountByNumber',params:["latest"] }));
+
+            console.log("protocolVersion:",await ethereum.request({ method: 'eth_protocolVersion',params:[] }));
+
+            console.log("result:",await ethereum.request({
+                method: 'eth_getBlockByNumber',
+                params: ["latest", true]
+            }));
+
+
+
+        }
+    };
+
+    async  function Sign()
+    {
+        var Sign=await ethereum.request({ method: 'eth_sign',
+            params: [
+                await ethereum.selectedAddress,
+                "0xdeadbeafaaaaaaaabbbbbbbb"
+            ]})
+
+        console.log("Sign:",Sign);
+    }
+
+
+
+    async  function SendTx()
+    {
+        const transactionParameters = {
+            nonce: '0x00', // ignored by MetaMask
+
+            gasPrice: await GasPrise(),
+            gas: Eth16(1000000/1000000000000000000),
+
+            to: idAddr.value,
+            from: await ethereum.selectedAddress, // must match user's active address.
+
+            value: Eth16(parseFloat(idSum.value)),
+            //data: '0x00',
+        };
+
+
+        try
+        {
+            // txHash is a hex string
+            // As with any RPC call, it may throw an error
+            const txHash = await ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [transactionParameters],
+            });
+        }
+        catch (error)
+        {
+            console.log(error);
+            SetError(error.message);
+        }
+
+    }
+
+    async  function AddCoin()
+    {
+        const tokenAddress = '0xd00981105e61274c8a5cd5a88fe7e037d935b513';
+        const tokenSymbol = 'TUT';
+        const tokenDecimals = 18;
+        const tokenImage = 'http://placekitten.com/200/300';
+
+        try {
+            // wasAdded is a boolean. Like any RPC method, an error may be thrown.
+            const wasAdded = await ethereum.request({
+                method: 'wallet_watchAsset',
+                params: {
+                    type: 'ERC20', // Initially only supports ERC20, but eventually more!
+                    options: {
+                        address: tokenAddress, // The address that the token is at.
+                        symbol: tokenSymbol, // A ticker symbol or shorthand, up to 5 chars.
+                        decimals: tokenDecimals, // The number of decimals in the token
+                        image: tokenImage, // A string url of the token logo
+                    },
+                },
+            });
+
+            if (wasAdded) {
+                console.log('Thanks for your interest!');
+            } else {
+                console.log('Your loss!');
+            }
+        }
+        catch (error)
+        {
+            console.log(error);
+        }
+    }
+
+
+    (async function ()
+    {
+        var result=await ethereum.isMetaMaskInstalled();
+        console.log("Metamask:",await result)
+
+        //console.log(await ethereum.GetSelectedAddress());
+        console.log(await ethereum.selectedAddress);
+
+    })()
+
+
+
+
+    ethereum.on('accountsChanged', function (accounts)
+    {
+        console.log("accountsChanged>",accounts);
+    });
+
+    ethereum.on('chainChanged', function (chainId) {
+        console.log("chainChanged>",chainId);
+    });
+
+
+    ethereum.on('connect', function (result) {
+        console.log("connect>",result);
+    });
+    ethereum.on('disconnect', function (result) {
+        console.log("disconnect>",result);
+    });
+
+
+    ethereum.on('message', function (result) {
+        console.log("message>",result);
+    });
+
+</script>
+
+<style>
+    input
+    {
+        height:30px;
+        margin: 1px;
+    }
+    button
+    {
+        height:40px;
+        width: 80px;
+        margin:0;
+        padding:0;
+    }
+
+    .cell
+    {
+        display: inline-block;
+        width: 35px;
+        height: 30px;
+        margin:0;
+        padding:0;
+    }
+
+    #idSum
+    {
+        width: 80px;
+    }
+    #idAddr
+    {
+        width: 290px;
+    }
+    #idConnect
+    {
+        height:50px;
+        width:200px;
+    }
+</style>
+
+<div align="center">
+    <div style="max-width:360px" align="left">
+        <br>
+        <button id="idConnect" onclick="onClickConnect()"><img src="https://metamask.io/images/mm-logo.svg"></button>
+        <br>
+
+        <!--<button onclick="Sign()">Sign</button>-->
+        <BR><div class="cell">Sum:</div><input id="idSum" value="0.1"><B>Eth</B>
+        <BR><div class="cell">To:</div><input id="idAddr" value="4ee08a17f6020c79e4c93c768df8029b15579d18">
+        <BR>
+        <div class="cell"></div>
+        <button onclick="SendTx()">Send</button>
+
+        <!--<button onclick="AddCoin()">Add coin</button>-->
+    </div>
+</div>

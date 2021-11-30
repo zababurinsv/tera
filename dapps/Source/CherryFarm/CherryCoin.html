@@ -1,0 +1,90 @@
+<script>
+
+
+    ALL_ACCOUNTS=1;
+    window.addEventListener('UpdateInfo',function ()
+    {
+        CheckOwnAcc();
+        $("idTotal").innerText=BASE_ACCOUNT.SmartState.TotalSum.toLocaleString(undefined, { useGrouping: true, style: 'decimal' });;
+        $("idName").innerText=SMART.ShortName;
+    });
+
+
+    function CheckOwnAcc()
+    {
+        var bOwner=0;
+        var Arr=[],ArrOwn=[];
+        for(var i=0;i<USER_ACCOUNT.length;i++)
+        {
+            var Item=USER_ACCOUNT[i];
+            if(SMART.Owner===Item.Num)
+                bOwner=1;
+
+        }
+
+        SetVisibleBlock("idOwnerTab",bOwner);
+    }
+
+
+    function MintCoin()
+    {
+        SendCall(0,"MintCoin",{Sum:parseFloat($("idSum").value)},[],SMART.Owner);
+    }
+</script>
+
+<style>
+    body
+    {
+        background-color: #2E3857;
+        color: white;
+    }
+    .item
+    {
+        position: fixed;
+        top:20px;
+        left:50%;
+        height:80px;
+        width: 280px;
+        padding: 5px;
+
+        transform: translate(-50%,0);
+
+        background-color: #3C678E;
+        border: 1px solid #888;
+    }
+    button
+    {
+        height: 26px;
+        width: 100px;
+        margin: 10px;
+        color:white;
+        background-color: #2E3857;
+        border: 1px solid #888;
+    }
+
+    button:hover
+    {
+        color: #cb763a;
+        cursor: pointer;
+    }
+
+</style>
+
+<div class="item">
+    <div align="center">
+        TOTAL GENERATE:<BR><BR> <span id="idTotal">000</span> <span id="idName">---</span>
+    </div>
+</div>
+<BR><BR><BR><BR><BR><BR>
+
+<div id="idOwnerTab" style="display:none" align="center">
+    <br>
+    <input type="number" id="idSum" value="1000">
+    <button onclick="MintCoin()">Mint</button>
+</div>
+
+
+
+
+
+

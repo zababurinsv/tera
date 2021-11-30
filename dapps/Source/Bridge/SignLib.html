@@ -1,0 +1,887 @@
+<script>
+    var COIN_STORE=0;
+    var TESTMODE=0;
+    var OLib;
+    InitOrderLib();
+    function InitOrderLib()
+    {
+        OLib=
+            {
+                WORK_PERIOD:5,//отступ от краев внутри разрешенного диапазона работы
+                CACHE_DELTA:5,//delta for cache starting
+                DeltaConfUpdate:1,
+                eth : (new Web3(window.ethereum)).eth,
+                WAS_ERR_MAP:{},
+                ConfTera:undefined,
+                WasMetaMaskInstalled:undefined,
+                EthNetworkId:0,
+                NetMapByGate:{},
+                EthAddrFrom:"",
+                EthABIERC:
+                    [
+                        //ERC20
+                        {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"} ,
+                        {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+
+                        //ERC721
+                        {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"tokenURI","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[{"internalType":"uint256","name":"tokenId","type":"uint256"}],"name":"ownerOf","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"} ,
+                        //ERC721Enum
+                        {"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"uint256","name":"index","type":"uint256"}],"name":"tokenOfOwnerByIndex","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[{"internalType":"address","name":"account","type":"address"},{"internalType":"uint16","name":"MaxCount","type":"uint16"}],"name":"GetTokenList","outputs":[{"internalType":"uint256[]","name":"Arr","type":"uint256[]"}],"stateMutability":"view","type":"function"} ,
+
+
+
+                    ],
+
+
+
+                EthABI:
+                    [
+
+                        //Proxy
+                        {"inputs":[{"internalType":"address","name":"Address","type":"address"}],"name":"SetUpgrade","outputs":[],"stateMutability":"nonpayable","type":"function"} ,
+                        {"inputs":[],"name":"SmartContract","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[],"name":"StartDeveloperMode","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"} ,
+
+                        //Bridge
+                        {"inputs":[{"internalType":"bytes","name":"Buf","type":"bytes"}],"name":"AddOrder","outputs":[],"stateMutability":"payable","type":"function"} ,
+                        {"inputs":[{"internalType":"uint48","name":"ID","type":"uint48"}],"name":"CancelOrder","outputs":[],"stateMutability":"nonpayable","type":"function"} ,
+                        {"inputs":[],"name":"DeleteLastNotary","outputs":[],"stateMutability":"nonpayable","type":"function"} ,
+                        {"inputs":[{"internalType":"bytes","name":"Buf","type":"bytes"}],"name":"ExecOrder","outputs":[],"stateMutability":"nonpayable","type":"function"} ,
+                        {"inputs":[{"internalType":"uint48","name":"BodyID","type":"uint48"},{"internalType":"uint256","name":"Length","type":"uint256"}],"name":"GetBody","outputs":[{"internalType":"bytes","name":"","type":"bytes"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[],"name":"GetCommon","outputs":[{"components":[{"internalType":"uint8","name":"WORK_MODE","type":"uint8"},{"internalType":"uint8","name":"CONSENSUS_PERIOD_TIME","type":"uint8"},{"internalType":"uint32","name":"FIRST_TIME_BLOCK","type":"uint32"},{"internalType":"uint24","name":"MAX_SIGN_PERIOD","type":"uint24"},{"internalType":"uint24","name":"MAX_TRANSFER_PERIOD","type":"uint24"},{"internalType":"uint8","name":"NOTARY_COUNT","type":"uint8"},{"internalType":"uint8","name":"MIN_SIGN_COUNT","type":"uint8"},{"internalType":"uint48","name":"MinNotaryFee","type":"uint48"},{"internalType":"uint48","name":"NotaryFee","type":"uint48"},{"internalType":"uint48","name":"MinDeposit","type":"uint48"},{"internalType":"uint16","name":"SlashRate","type":"uint16"},{"internalType":"uint48","name":"MinSlash","type":"uint48"},{"internalType":"uint8","name":"OrderEnum","type":"uint8"}],"internalType":"struct TypeLib.TypeCommon","name":"","type":"tuple"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[],"name":"GetConf","outputs":[{"components":[{"internalType":"uint48","name":"WorkNum","type":"uint48"},{"internalType":"uint48","name":"HeadOrderID","type":"uint48"},{"internalType":"uint48","name":"TailOrderID","type":"uint48"},{"internalType":"uint48","name":"NewOrderID","type":"uint48"}],"internalType":"struct TypeLib.TypeConf","name":"","type":"tuple"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[{"internalType":"uint32","name":"Num","type":"uint32"}],"name":"GetGate","outputs":[{"components":[{"internalType":"address","name":"TokenAddr","type":"address"},{"internalType":"uint8","name":"WORK_MODE","type":"uint8"},{"internalType":"uint16","name":"TypeERC","type":"uint16"},{"internalType":"uint48","name":"Rate","type":"uint48"},{"internalType":"uint8","name":"Decimals","type":"uint8"}],"internalType":"struct TypeLib.TypeGate","name":"","type":"tuple"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[{"internalType":"uint8","name":"Num","type":"uint8"}],"name":"GetNotary","outputs":[{"components":[{"internalType":"uint8","name":"Notary","type":"uint8"},{"internalType":"address","name":"Addr","type":"address"},{"internalType":"uint8","name":"CanSign","type":"uint8"},{"internalType":"uint64","name":"SumDeposit","type":"uint64"}],"internalType":"struct TypeLib.TypeNotary","name":"","type":"tuple"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[{"internalType":"uint48","name":"ID","type":"uint48"}],"name":"GetOrder","outputs":[{"internalType":"bytes","name":"","type":"bytes"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[{"internalType":"uint48","name":"ID","type":"uint48"}],"name":"GetOrderHeader","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[{"internalType":"uint48","name":"ID","type":"uint48"},{"internalType":"uint16","name":"Count","type":"uint16"}],"name":"GetOrderList","outputs":[{"internalType":"bytes[]","name":"Arr","type":"bytes[]"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[{"internalType":"uint48","name":"ID","type":"uint48"}],"name":"GetOrderObject","outputs":[{"components":[{"internalType":"uint32","name":"Gate","type":"uint32"},{"internalType":"uint48","name":"ID","type":"uint48"},{"internalType":"uint32","name":"AddrTera","type":"uint32"},{"internalType":"bytes20","name":"AddrEth","type":"bytes20"},{"internalType":"bytes","name":"TokenID","type":"bytes"},{"internalType":"uint64","name":"Amount","type":"uint64"},{"internalType":"uint64","name":"TransferFee","type":"uint64"},{"internalType":"bytes","name":"Description","type":"bytes"},{"internalType":"uint8","name":"Process","type":"uint8"},{"internalType":"uint64","name":"NotaryFee","type":"uint64"},{"internalType":"uint48","name":"PrevID","type":"uint48"},{"internalType":"uint48","name":"NextID","type":"uint48"},{"internalType":"uint48","name":"BodyID","type":"uint48"},{"internalType":"uint16","name":"BodyLength","type":"uint16"},{"components":[{"internalType":"uint8","name":"Notary","type":"uint8"},{"internalType":"bytes32","name":"SignR","type":"bytes32"},{"internalType":"bytes32","name":"SignS","type":"bytes32"},{"internalType":"uint8","name":"SignV","type":"uint8"},{"internalType":"uint8","name":"Slash","type":"uint8"}],"internalType":"struct TypeLib.TypeSigner[]","name":"SignArr","type":"tuple[]"}],"internalType":"struct TypeLib.TypeOrder","name":"","type":"tuple"}],"stateMutability":"view","type":"function"} ,
+                        {"inputs":[{"internalType":"uint48","name":"ID","type":"uint48"},{"internalType":"uint8","name":"Notary","type":"uint8"},{"internalType":"bytes32","name":"SignR","type":"bytes32"},{"internalType":"bytes32","name":"SignS","type":"bytes32"},{"internalType":"uint8","name":"SignV","type":"uint8"}],"name":"NotarySign","outputs":[],"stateMutability":"nonpayable","type":"function"} ,
+                        {"inputs":[{"components":[{"internalType":"uint8","name":"WORK_MODE","type":"uint8"},{"internalType":"uint8","name":"CONSENSUS_PERIOD_TIME","type":"uint8"},{"internalType":"uint32","name":"FIRST_TIME_BLOCK","type":"uint32"},{"internalType":"uint24","name":"MAX_SIGN_PERIOD","type":"uint24"},{"internalType":"uint24","name":"MAX_TRANSFER_PERIOD","type":"uint24"},{"internalType":"uint8","name":"NOTARY_COUNT","type":"uint8"},{"internalType":"uint8","name":"MIN_SIGN_COUNT","type":"uint8"},{"internalType":"uint48","name":"MinNotaryFee","type":"uint48"},{"internalType":"uint48","name":"NotaryFee","type":"uint48"},{"internalType":"uint48","name":"MinDeposit","type":"uint48"},{"internalType":"uint16","name":"SlashRate","type":"uint16"},{"internalType":"uint48","name":"MinSlash","type":"uint48"},{"internalType":"uint8","name":"OrderEnum","type":"uint8"}],"internalType":"struct TypeLib.TypeCommon","name":"Conf","type":"tuple"}],"name":"SetCommon","outputs":[],"stateMutability":"nonpayable","type":"function"} ,
+                        {"inputs":[{"internalType":"uint32","name":"Num","type":"uint32"},{"components":[{"internalType":"address","name":"TokenAddr","type":"address"},{"internalType":"uint8","name":"WORK_MODE","type":"uint8"},{"internalType":"uint16","name":"TypeERC","type":"uint16"},{"internalType":"uint48","name":"Rate","type":"uint48"},{"internalType":"uint8","name":"Decimals","type":"uint8"}],"internalType":"struct TypeLib.TypeGate","name":"Gate","type":"tuple"}],"name":"SetGate","outputs":[],"stateMutability":"nonpayable","type":"function"} ,
+                        {"inputs":[{"internalType":"uint8","name":"Notary","type":"uint8"},{"internalType":"bytes","name":"Addr","type":"bytes"},{"internalType":"uint64","name":"Deposit","type":"uint64"},{"internalType":"uint8","name":"CanSign","type":"uint8"}],"name":"SetNotary","outputs":[],"stateMutability":"nonpayable","type":"function"} ,
+                        {"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"SetOwner","outputs":[],"stateMutability":"nonpayable","type":"function"} ,
+                        {"inputs":[{"internalType":"bytes","name":"Buf","type":"bytes"},{"internalType":"uint8","name":"Notary","type":"uint8"},{"internalType":"bytes32","name":"SignR","type":"bytes32"},{"internalType":"bytes32","name":"SignS","type":"bytes32"},{"internalType":"uint8","name":"SignV","type":"uint8"}],"name":"SlashProof","outputs":[],"stateMutability":"nonpayable","type":"function"} ,
+
+                    ]
+            };
+
+        OLibClearCahce();
+
+        setInterval(OLibClearCahce, 1800*1000);
+
+    }
+
+    function OLibClearCahce()
+    {
+        OLib.ConfTeraTime=0;
+        OLib.ConfEthTime=0;
+        OLib.MAP_ETH={};
+        OLib.MAP_TERA={};
+        OLib.CACHE_MAP={};
+        OLib.GATE_MAP_ETH={};
+        OLib.ORDER_MAP={Eth:{Arr:[],SetWorkNum:-1}, Tera:{Arr:[],SetWorkNum:-1}};
+    }
+
+
+
+    function GetAddrFromPubKey(PubKeyArr)
+    {
+        return keccak256(PubKeyArr.slice(1)).slice(12);
+    }
+
+    //--------------------------------------------------------------------------- TX CACHE
+    function UpdateTeraCache(Data)
+    {
+        var Order=Data;
+        if(typeof Data.cmd==="string")
+            Order=Data.Data;
+        if(Order && typeof Data.ID==="number")//update cache
+        {
+            delete OLib.MAP_TERA[Data.ID];
+            delete OLib.MAP_ETH[Data.ID];
+        }
+    }
+
+
+    async function GetOrderList(Item, WorkNum, NextID, FOrderRead)
+    {
+        if(Item.Busy)
+        {
+            return new Promise(function(resolve, reject)
+            {
+                if(!Item.PromiseArr)
+                    Item.PromiseArr=[];
+                Item.PromiseArr.push(resolve);
+            });
+        }
+
+        Item.Busy=1;
+        var Ret=await GetOrderListInner(Item, WorkNum, NextID, FOrderRead);
+        Item.Busy=0;
+
+        for(var i=0;Item.PromiseArr && i<Item.PromiseArr.length;i++)
+        {
+            var resolve=Item.PromiseArr[i];
+            resolve(Item.Arr);
+        }
+        Item.PromiseArr=[];
+
+        return Ret;
+    }
+
+    async function GetOrderListInner(Item, WorkNum, NextID, FOrderRead)
+    {
+        if(Item.SetWorkNum>=WorkNum)
+        {
+            return Item.Arr;
+        }
+
+        Item.Arr=[];
+        let Arr=Item.Arr;
+
+        let Count=0;
+        while(NextID)
+        {
+            Count++;
+            var Order=await FOrderRead(NextID);
+            if(Order && Order.ID)
+            {
+                SetOrderPeriod(Order);
+                if(Order.PeriodNum<=3)
+                    Arr.push(Order);
+                NextID=Order.NextID;
+            }
+            else
+            {
+                NextID=0;
+            }
+
+            if(Count>5000)
+            {
+                console.log("Break list - more 5000");
+                break;
+            }
+        }
+
+        Item.SetWorkNum=WorkNum;
+        return Arr;
+    }
+
+
+
+
+
+
+
+    async function GetOrderFromMap(Map,ID,F)
+    {
+        var Item=Map[ID];
+        if(Item && (Date.now()-Item.Time)>=2*1000)
+        {
+            //проверяем тип хранения в буфере
+            var BlockNum=GetOrderBlockNum(Item);
+            if(BlockNum>INFO.CurBlockNum-OLib.CACHE_DELTA)//недавно добавленные ордера
+            {
+                //это данные с коротким временем хранения - удаляем из кэша
+                delete Map[Item.ID];
+                Item=undefined;
+            }
+        }
+
+        var Order;
+        if(Item)
+        {
+            Order=Item.Data;
+        }
+        else
+        {
+            var Arr=await F(ID);
+            var CurTime=Date.now();
+            for(var i=0;i<Arr.length;i++)
+            {
+                var Data=Arr[i];
+                if(i==0)
+                {
+                    Order=Data;
+                    Item={ID:ID,Time:CurTime,Data:Arr[i]};
+                }
+                else
+                {
+                    if(!Data)
+                        break;
+                    Item={ID:Data.ID,Time:CurTime,Data:Arr[i]};
+                }
+
+                Map[Item.ID]=Item;
+            }
+        }
+
+
+        SetOrderPeriod(Order);
+        return Order;
+    }
+
+
+    //--------------------------------------------------------------------------- ETH Send
+    function DecodeEthObject(ObjEth,ToNum)
+    {
+        if(!ObjEth)
+            return undefined;
+        var Ret={};
+        for(var key in ObjEth)
+        {
+            if(isNaN(+key))
+            {
+                if(ToNum)
+                    Ret[key]=+ObjEth[key];
+                else
+                    Ret[key]=ObjEth[key];
+            }
+        }
+        return Ret;
+    }
+
+
+    function Eth16(Sum)
+    {
+        return (Math.floor(Sum*1000000000000000000)).toString(16);
+    }
+    function GasPrise()
+    {
+        return ethereum.request({ method: 'eth_gasPrice',params:[] });
+    }
+
+    async function ConnectEth(ABI,Addr)
+    {
+        // get all accounts
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
+        if(typeof accounts!=="object")
+            return undefined;
+        OLib.EthAddrFrom=accounts[0];
+
+
+        if(!OLib.ContractAddr)
+            return undefined;
+
+        if(!ABI)
+            return;
+
+        return new OLib.eth.Contract(ABI, Addr);
+    }
+
+    async function CheckMetamsk()
+    {
+        if(OLib.WasMetaMaskInstalled===undefined)
+        {
+            OLib.WasMetaMaskInstalled=await ethereum.isMetaMaskInstalled();
+            if(!OLib.WasMetaMaskInstalled)
+            {
+                OLib.WasMetaMaskInstalled=0;
+                console.log("No Metamask");
+            }
+        }
+    }
+
+    async function CallEthExt(MethodName,Arr,EthSmart)
+    {
+        if(OLib.WasMetaMaskInstalled===undefined)
+            await CheckMetamsk();
+
+        if(!OLib.WasMetaMaskInstalled)
+            return undefined;
+        if(!EthSmart)
+        {
+            if(!OLib.EthABI || !OLib.ContractAddr)
+                return undefined;
+
+            EthSmart=await ConnectEth(OLib.EthABI, OLib.ContractAddr);
+        }
+        if(!EthSmart)
+        {
+            return undefined;
+        }
+
+
+
+
+        var fun=EthSmart.methods[MethodName];
+
+
+        try
+        {
+            var Ret=await fun.apply(this,Arr).call();
+        }
+        catch(err)
+        {
+            if(!OLib.WAS_ERR_MAP[MethodName])
+            {
+                console.log("Error on MethodName:",MethodName,Arr,"OLib:",OLib.ContractAddr);
+                OLib.WAS_ERR_MAP[MethodName]=1;
+                console.error(err);
+            }
+            return undefined;
+        }
+
+        return Ret;
+    }
+
+
+    async function CallEthERC(Addr, MethodName)
+    {
+        var EthSmart=await ConnectEth(OLib.EthABIERC,Addr);
+        if(!EthSmart)
+            return undefined;
+
+        var Arr=[];
+        for(var i=2;i<arguments.length;i++)
+            Arr.push(arguments[i]);
+
+        return CallEthExt(MethodName,Arr, EthSmart);
+    }
+
+    async function CallEth(MethodName)
+    {
+        var Arr=[];
+        for(var i=1;i<arguments.length;i++)
+            Arr.push(arguments[i]);
+
+        return CallEthExt(MethodName,Arr);
+    }
+
+
+
+    async function SendEthExt(MethodName, Arr, EthSmart)
+    {
+        if(!EthSmart)
+            EthSmart=await ConnectEth(OLib.EthABI,OLib.ContractAddr);
+
+        var fun=EthSmart.methods[MethodName];
+        var Ret=fun.apply(this,Arr).send({from: OLib.EthAddrFrom});
+        return Ret;
+    }
+
+
+    async function SendEthERC(Addr,MethodName)
+    {
+        var EthSmart=await ConnectEth(OLib.EthABIERC,Addr);
+
+        var Arr=[];
+        for(var i=2;i<arguments.length;i++)
+            Arr.push(arguments[i]);
+
+        return SendEthExt(MethodName, Arr, EthSmart);
+    }
+
+
+    async function SendEth(MethodName)
+    {
+        var Arr=[];
+        for(var i=1;i<arguments.length;i++)
+            Arr.push(arguments[i]);
+
+        return SendEthExt(MethodName, Arr);
+    }
+
+
+
+    async function PayEth()
+    {
+        var EthSmart=await ConnectEth(OLib.EthABI,OLib.ContractAddr);
+
+        var MethodName=arguments[0];
+        var Value=arguments[1];
+        var Arr=[];
+        for(var i=2;i<arguments.length;i++)
+            Arr.push(arguments[i]);
+
+        var fun=EthSmart.methods[MethodName];
+        var Ret=fun.apply(this,Arr).send({from: OLib.EthAddrFrom,value:Value});
+        //console.log(MethodName+":",await Ret);
+        return Ret;
+    }
+
+
+
+    function SetOwnerEth(Addr)
+    {
+        return SendEth("SetOwner",ToBytes(Addr));
+    }
+
+
+
+
+    //--------------------------------------------------------------------------- ETH Conf support
+
+    async function GetCommonEthInner()
+    {
+        let Conf=await CallEth("GetCommon");
+        if(Conf)
+        {
+            Conf=DecodeEthObject(Conf,1);
+
+            Conf.MinNotaryFee=Conf.MinNotaryFee/1e9;
+            Conf.NotaryFee=Conf.NotaryFee/1e9;
+            Conf.MinDeposit=Conf.MinDeposit/1e9;
+            Conf.MinSlash=Conf.MinSlash/1e9;
+        }
+
+        return Conf;
+    }
+    async function GetGateEthInner(Num)
+    {
+        let Conf=await CallEth("GetGate",Num);
+        if(!Conf || (Conf.Rate=="0" && Conf.WORK_MODE=="0" && Conf.TypeERC=="0"))
+            return undefined;
+
+        Conf=DecodeEthObject(Conf,0);
+        if(Conf)
+        {
+            Conf.WORK_MODE=+Conf.WORK_MODE;
+            Conf.TypeERC=+Conf.TypeERC;
+            Conf.Rate=(+Conf.Rate)/1e9;
+            Conf.Decimals=+Conf.Decimals;
+        }
+
+        return Conf;
+    }
+
+
+
+
+    async function GetCommonEth(bForceUpdate)
+    {
+        if(bForceUpdate || !OLib.ConfEth || !OLib.ConfEthTime || (Date.now()-OLib.ConfEthTime)>OLib.DeltaConfUpdate*1000)
+        {
+            OLib.ConfEth=await GetCommonEthInner();
+            OLib.ConfEthTime=Date.now();
+        }
+
+        //console.log("ConfEth:",OLib.ConfEth);
+
+        return OLib.ConfEth;
+    }
+
+    async function GetGateEth(Num,bForceUpdate)
+    {
+        if(!OLib.GATE_MAP_ETH)
+            OLib.GATE_MAP_ETH={};
+        let Item=OLib.GATE_MAP_ETH[Num];
+        if(!Item)
+        {
+            Item={Time:0,Data:undefined};
+            OLib.GATE_MAP_ETH[Num]=Item;
+        }
+
+        if(bForceUpdate || (Date.now()-Item.Time)>OLib.DeltaConfUpdate*1000)
+        {
+            Item.Data=await GetGateEthInner(Num);
+            Item.Time=Date.now();
+        }
+
+        //console.log("GetGateEth="+Num,":",Item.Data)
+
+        return Item.Data;
+    }
+
+
+    function SetCommonEth(Conf)
+    {
+        return SendEth("SetCommon",Conf);
+    }
+
+    async function GetConfEth()
+    {
+        var Conf=await CallEth("GetConf");
+        return DecodeEthObject(Conf,1);
+    }
+
+
+
+
+
+
+
+    //--------------------------------------------------------------------------- ETH Order support
+    function SendExecOrderEth(Order)
+    {
+        var Buf=[];
+        EncodeOrder(Buf,Order,1);
+        console.log("ETH Length:",Buf.length,ToBytes(Buf));
+        return SendEth("ExecOrder",ToBytes(Buf));
+    }
+
+
+    async function SendAddOrderEth(Order)
+    {
+        var Common=await GetCommonEth();
+        if(!Common)
+            return SetError("Error GetCommonEth");
+
+        if(!Order.ID)
+            Order.ID=0;
+        if(!Order.TokenID)
+            Order.TokenID="";
+
+        var Buf=[];
+        EncodeOrder(Buf,Order,1);
+
+
+        var Gate=await GetGateEth(Order.Gate);
+        if(!Gate || !Gate.WORK_MODE)
+            return SetError("Error order WORK_MODE Gate = "+Order.Gate);
+
+
+
+
+        //доводим точность до точности монеты
+        if(Gate.TypeERC==0)//native eth
+        {
+            var AllAmount=Order.Amount+Order.TransferFee + (Gate.Rate?Order.NotaryFee/Gate.Rate:0);
+            AllAmount=AllAmount*(10**Gate.Decimals);
+
+            console.log("ETH PAY:"+AllAmount/1e18+" Length:",Buf.length,ToBytes(Buf));
+
+            return PayEth("AddOrder",AllAmount,ToBytes(Buf));
+        }
+
+
+        if(Gate.WORK_MODE==3)//other token
+        {
+            var AllAmount=Order.Amount+Order.TransferFee + Order.NotaryFee;
+            AllAmount=AllAmount*(10**Gate.Decimals);
+
+            var WasAllowance=await CallEthERC(Gate.TokenAddr,"allowance",ToBytes(Order.AddrEth),ToBytes(OLib.ContractAddr));
+
+            console.log("ERC:",AllAmount,"->",WasAllowance,WasAllowance<AllAmount?"NO":"OK");
+
+            if(WasAllowance<AllAmount)
+            {
+                console.log("Start approve to "+Gate.TokenAddr);
+
+                // if(WasAllowance>0)
+                //      await SendEthERC(Gate.TokenAddr,"approve",OLib.ContractAddr,0);
+                // var Result=await SendEthERC(Gate.TokenAddr,"approve",OLib.ContractAddr,AllAmount);
+
+                WasAllowance=+WasAllowance;
+                if(AllAmount>WasAllowance)
+                {
+                    var Result=await SendEthERC(Gate.TokenAddr,"approve",OLib.ContractAddr,AllAmount);
+                    console.log("Result approve:",Result);
+                }
+            }
+        }
+
+        if(Gate.TypeERC==721)//NFT
+        {
+            //здесь Fee уже в газе (eth)
+            var AllFee=Order.TransferFee + Order.NotaryFee;
+            AllFee=AllFee*1e18;
+
+            console.log("ETH PAY:"+AllFee/1e18+" Length:",Buf.length,ToBytes(Buf));
+
+            return PayEth("AddOrder",AllFee,ToBytes(Buf));
+        }
+
+        console.log("ETH Send Length:",Buf.length,ToBytes(Buf));
+        return SendEth("AddOrder",ToBytes(Buf));
+
+    }
+
+
+
+
+
+    async function ReadOrderEth(ID)
+    {
+        var Order=GetOrderFromMap(OLib.MAP_ETH,ID,async function(ID)
+        {
+
+            var Arr=[];
+            var ArrBuf=await CallEth("GetOrderList",ID,50);
+
+            for(var i=0;i<ArrBuf.length;i++)
+            {
+                var  OrderBuf=ArrBuf[i];
+                if(!OrderBuf || OrderBuf.length<=10)
+                    break;
+
+                Order=DecodeOrder(ArrFromBytes(OrderBuf),1);
+                Arr.push(Order);
+            }
+            return Arr;
+        });
+
+        return Order;
+    }
+
+
+
+    async function GetOrderListEth()
+    {
+        var Map=OLib.ORDER_MAP.Eth;
+        var Conf=await GetConfEth();
+        if(!Conf)
+            return Map.Arr;
+
+        return GetOrderList(Map, Conf.WorkNum, Conf.HeadOrderID, ReadOrderEth);
+    }
+
+
+
+
+
+
+
+    //------------------------------------------------------------------------------------------------------------TERA PART
+
+
+
+    async function GetConfTera(Params,bForceUpdate)
+    {
+        if(bForceUpdate || !OLib.ConfTera || !OLib.ConfTeraTime || (Date.now()-OLib.ConfTeraTime)>OLib.DeltaConfUpdate*1000)
+        {
+            if(!Params)
+                Params={};
+            var ConfTera=await CallTeraProxy(0,"GetConf",Params);
+            if(ConfTera)
+            {
+                COIN_STORE=ConfTera.CoinStore;
+                OLib.ConfTera=ConfTera;
+                OLib.ConfTeraTime=Date.now();
+                FillGates(ConfTera);
+            }
+        }
+
+        return OLib.ConfTera;
+    }
+
+    function FillGates(Conf)
+    {
+        OLib.ContractAddr="";
+        OLib.NetMapByGate={};
+        for(var key in Conf.Gates)
+        {
+            var Item=Conf.Gates[key];
+
+            var Net=Conf.Blockchains[Item.ChainName];
+            if(Net)
+            {
+                Net.ChainName=Item.ChainName;
+                Item.EthNetworkId=Net.EthNetworkId;
+                Item.EthSmartAddr=Net.EthSmartAddr;
+                Item.OrderEnum=Net.OrderEnum;
+                Item.EthDescription=Net.EthDescription;
+                Item.TransferFee=Net.TransferFee;
+
+
+                OLib.NetMapByGate[key]=Net;
+
+                if(OLib.EthNetworkId==Net.EthNetworkId)
+                    OLib.ContractAddr=Net.EthSmartAddr;
+
+            }
+        }
+    }
+
+
+    async function GetOrderListTera(bForceUpdate)
+    {
+        var Map=OLib.ORDER_MAP.Tera;
+        var Conf=await GetConfTera({},bForceUpdate);
+        if(!Conf || !Conf.Orders)
+            return Map.Arr;
+
+
+        return GetOrderList(Map, Conf.Orders.WorkNum, Conf.Orders.HeadID, ReadOrderTera);
+    }
+
+
+
+    async function ReadOrderTera(ID)
+    {
+        if(!OLib.ConfTera)
+            return undefined;
+
+        var Order=GetOrderFromMap(OLib.MAP_TERA,ID,async function(ID)
+        {
+            var Arr = await CallTeraProxy(0,"GetOrderList",{ID:ID,Count:50});
+            return Arr;
+        });
+
+        return Order;
+    }
+
+    function SetOrderPeriod(Order)
+    {
+        if(!Order)
+            return;
+
+        if(!OLib.ConfTera || !OLib.ConfTera.Common)
+        {
+            Order.Period="-error-";
+            Order.PeriodNum=0;
+            return;
+        }
+
+        Order.PeriodNum=OrderInPeriod(OLib.ConfTera.Common,Order.ID);
+        switch(Order.PeriodNum)
+        {
+            case 1:
+                Order.Period="Waiting";
+                break;
+            case 2:
+                Order.Period="Signing";
+                break;
+            case 3:
+                Order.Period="Checking";
+                break;
+            case 4:
+                Order.Period="Clearing";
+                break;
+        }
+    }
+
+    function GetOrderBlockNum(Order)
+    {
+        return Math.floor(Order.ID/100000);
+    }
+
+
+    function IsTera(Order)
+    {
+        if(Order.Pending==1)
+            return 1;
+        else
+        if(Order.Pending==2)
+            return 0;
+
+        var Num=Math.floor(Order.ID/1000);
+        if(Num%100 == 0)
+            return 1;
+        else
+            return 0;
+    }
+
+
+    function OrderInPeriod(Info,ID)
+    {
+        var BlockNum=Math.floor(ID/100000);
+
+        if(INFO.CurBlockNum<BlockNum)
+            return 1;
+
+
+        if(INFO.CurBlockNum>BlockNum+Info.TransferPeriod)
+            return 4;
+
+        if(INFO.CurBlockNum>BlockNum+Info.SignPeriod)
+            return 3;
+
+        return 2;
+    }
+
+
+
+
+
+    async function CallTera(AccNum,Name,Params,ParamsArr)
+    {
+        return new Promise(function(resolve, reject)
+        {
+            StaticCall(AccNum,Name,Params,ParamsArr,function (Err,Value)
+            {
+                if(Err)
+                {
+                    SetError(Value);
+                    reject(Value);
+                }
+                else
+                {
+                    resolve(Value);
+                }
+            });
+        });
+    }
+
+
+    function GetSignOrder(Order,PrivKey)
+    {
+        var Hash=GetOrderHash(Order);
+        return GetSignFromHash(Hash,PrivKey);
+    }
+
+
+
+    function GetSignFromHash(Hash,PrivKey)
+    {
+        var Hash32=Buffer.from(Hash);
+        var PrivKey32=Buffer.from(PrivKey);
+        var Sign = SignLib.sign(Hash32, PrivKey32, null,null);
+        var SignArr=[];
+        for(var i=0;i<64;i++)
+            SignArr.push(Sign.signature[i]);
+        SignArr.push(Sign.recovery+27)
+        return SignArr;
+    }
+
+
+
+    //--------------------------------------------------------------------------- common smart-contract lib
+
+    function Round(Sum)
+    {
+        return Math.floor(0.5+Sum*1e9)/1e9;
+    }
+
+
+
+    //--------------------------------------------------------------------------- Proxy support
+    async function CallTeraProxy(AccNum,Name,Params,ParamsArr)
+    {
+        return new Promise(function(resolve, reject)
+        {
+            MStaticCall(AccNum,Name,Params,ParamsArr,function (Err,Value)
+            {
+                if(Err)
+                {
+                    SetError(Value);
+                    reject(Value);
+                }
+                else
+                {
+                    resolve(Value);
+                }
+            });
+        });
+    }
+    function MStaticCall(To,Name,Params,ParamsArr,F)
+    {
+        if(typeof Params!=="object")
+            return SetError("Error call "+Name);
+
+        Params.cmd=Name;
+        if(TESTMODE && To<200 || Name==="GetProxy")
+            return StaticCall(To,Name,Params,ParamsArr,F);
+        else
+            return StaticCall(To,"Call",Params,ParamsArr,F);
+
+    }
+    function MSendCall(To,Name,Params,ParamsArr,From)
+    {
+        if(typeof Params!=="object")
+            return SetError("Error call "+Name);
+
+        Params.cmd=Name;
+        if(TESTMODE || Name==="SetProxy")
+            return SendCall(To,Name,Params,ParamsArr,From);
+        else
+            return SendCall(To,"Call",Params,ParamsArr,From);
+    }
+
+
+</script>
+

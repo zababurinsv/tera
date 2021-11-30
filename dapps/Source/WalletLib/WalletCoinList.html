@@ -1,0 +1,39 @@
+<script>
+    window.addEventListener('Init',function ()
+    {
+        GetList()
+    });
+
+    function SetList()
+    {
+        if(!idList.value)
+            return SetError("Set Arr");
+
+        var Arr=JSON.parse(idList.value);
+        SendCall(0,"SetList",{Value:Arr},[],SMART.Owner);
+    }
+
+    function GetList()
+    {
+        StaticCall(0,"GetList",{},[],function (Err,Value)
+        {
+            if(Err || !Value)
+                return;
+            idList.value=JSON.stringify(Value);
+        });
+
+    }
+
+</script>
+
+
+<br>
+<button onclick="GetList()">Get</button>
+
+<br>
+<TEXTAREA id="idList" rows="9" cols="40" style="width:99%">
+[{"Num":0,"Name":"","Flag":0}]
+</TEXTAREA>
+<br>
+<button onclick="SetList()">Set</button>
+

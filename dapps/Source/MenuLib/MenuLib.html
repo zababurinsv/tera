@@ -1,0 +1,221 @@
+
+
+<script>
+    //TAB MENU
+    var FirstMenuItem;
+    window.addEventListener('Init',function ()
+    {
+        PrepareTabMenu();
+        if($("idMain"))
+            $("idMain").style.display="block";
+
+        if(OPEN_PATH)
+        {
+            SelectTabMenu(OPEN_PATH);
+        }
+        else
+        {
+            SelectTabMenu(FirstMenuItem);
+        }
+        window.addEventListener('History',function (e)
+        {
+            var Data=e.detail;
+            OPEN_PATH=Data.OPEN_PATH;
+            SelectTabMenu(OPEN_PATH);
+        });
+    });
+
+    function SelectTabMenu(ClickItem,bNoLocation)
+    {
+        if(typeof ClickItem==="string")
+            ClickItem=$(ClickItem);
+        if(!ClickItem)
+            return;
+
+        var CurrentRef=ClickItem.dataset.ref;
+
+        var parent = ClickItem.parentNode;
+        var arr=parent.children;
+        for(var i=0;i<arr.length;i++)
+        {
+            var Item=arr[i];
+            Item.className=Item.className.replace(" current", "")
+            if(Item===ClickItem)
+                Item.className+=" current";
+        }
+
+        parent = ClickItem.parentNode.parentNode;
+        var arr=parent.children;
+        for(var i=0;i<arr.length;i++)
+        {
+            var Item=arr[i];
+            if(Item.tagName==="CONTENT")
+            {
+                if(Item.dataset.ref===CurrentRef)
+                    Item.style.display = 'block';
+                else
+                    Item.style.display = 'none';
+            }
+        }
+
+        var name=ClickItem.id;
+        if(name && !bNoLocation)
+            SetLocationPath(name);
+
+    }
+
+    function PrepareTabMenu()
+    {
+        FirstMenuItem=undefined;
+
+        var arr = document.querySelectorAll("item");
+        for (var n = 0; n < arr.length; n++)
+        {
+            let Item=arr[n];
+            if(!FirstMenuItem)
+                FirstMenuItem=Item;
+            Item.addEventListener("click",function()
+            {
+                SelectTabMenu(Item);
+            });
+        }
+
+        arr = document.querySelectorAll("content");
+        for (var n = 0; n < arr.length; n++)
+        {
+            arr[n].style.display="none";
+        }
+
+    }
+
+
+
+
+
+
+    //------------------------
+</script>
+
+
+
+<style>
+    /*TAB MENU*/
+    :root
+    {
+        --colorTabB1: rgba(255, 255, 255, 0.6);
+        --colorTabB2: #53687e;
+        --colorTabB3: #445368;
+    }
+
+    .current
+    {
+        color: white;
+        background-color: var(--colorTabB3);
+    }
+
+    menu
+    {
+        display: inline-grid;
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        grid-gap: 1px;
+
+        max-width: 400px;
+        padding:0;
+        margin:0;
+        font-family: 'BenderRegular';
+    }
+
+    item
+    {
+        color: var(--colorTabB1);
+        background-color: var(--colorTabB2);
+
+        height: 44px;
+        line-height:44px;
+
+
+        margin: 0;
+        padding:0;
+
+        text-align: center;
+
+        font-family: Helvetica,Arial,sans-serif;
+        font-size: 14px;
+        font-weight:400;
+    }
+
+
+
+    item:hover
+    {
+        cursor: pointer;
+        color: #ecb84e;
+    }
+
+    content
+    {
+        font-size: 14px;
+        text-align: center;
+
+        padding-top:20px;
+        padding-bottom:20px;
+        border2: 1px solid gray;
+    }
+
+</style>
+
+<DIV align='center' id="idMain" style="display:none">
+
+    <menu>
+        <item data-ref="m1" id="idPage1">
+            Menu-1
+        </item>
+
+        <item data-ref="m2" id="idPage2">
+            Menu-2
+        </item>
+
+        <item data-ref="m3" id="idPage3">
+            Menu-3
+        </item>
+        <item data-ref="m4" id="idPage4">
+            Menu-4
+        </item>
+    </menu>
+
+
+    <content data-ref="m1">
+        =Content menu1=
+    </content>
+
+    <content data-ref="m2">
+
+        =Content menu2=
+
+        <BR>
+        <menu>
+            <item data-ref="s1">
+                Sub 1
+            </item>
+            <item data-ref="s2">
+                Sub 2
+            </item>
+            <item data-ref="s3">
+                Sub 3
+            </item>
+        </menu>
+
+        <content data-ref="s1">
+            =Content sub-menu1=
+        </content>
+
+        <content data-ref="s2">
+            =Content sub-menu2=
+        </content>
+
+    </content>
+
+
+
+</DIV>
+
