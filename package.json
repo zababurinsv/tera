@@ -23,15 +23,16 @@
     "test:stop": "cd SourceJinn && pm2 stop run-jinn.js  --name node-T",
     "test:restart": "cd SourceJinn && pm2 restart run-jinn.js  --name node-T",
     "test:delete": "cd SourceJinn && pm2 delete run-jinn.js  --name node-T",
-    "elite:run": "cd SourceCredit && pm2 start run-jinn.js --name node-T",
-    "elite:stop": "cd SourceCredit && pm2 stop run-jinn.js  --name node-T",
-    "elite:restart": "cd SourceCredit && pm2 restart run-jinn.js  --name node-T",
-    "elite:delete": "cd SourceCredit && pm2 delete run-jinn.js  --name node-T",
+    "elite:run": "cd SourceCredit && pm2 start run-jinn.js --name node-C",
+    "elite:stop": "cd SourceCredit && pm2 stop run-jinn.js  --name node-C",
+    "elite:restart": "cd SourceCredit && pm2 restart run-jinn.js  --name node-C",
+    "elite:delete": "cd SourceCredit && pm2 delete run-jinn.js  --name node-C",
     "pm2 save": "pm2 save",
     "pm2:monit": "pm2 monit",
     "pm2:logs": "pm2 logs --out --lines 200",
     "pm2:list": "pm2 list",
-    "kill:credits": "kill $(lsof -t -i:9000)"
+    "kill:credits": "kill $(lsof -t -i:9000)",
+    "kill:9001": "kill $(lsof -t -i:9001)"
   },
   "author": "progr76@gmail.com",
   "license": "MIT"
