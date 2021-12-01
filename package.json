@@ -30,7 +30,7 @@
     "credits:restart": "cd SourceCredits && pm2 restart run-node.js --name node-C",
     "credits:delete": "cd SourceCredits && pm2 delete run-node.js --name node-C",
     "elite:test": " cd SourceCredits && node run-node.js --name node-C",
-    "delete": "rimraf ./DATA-CREDITS/err.log && rimraf ./DATA-CREDITS/DB && rimraf ./DATA-CREDITS/jinn-nodes-8.lst && rimraf ./DATA-CREDITS/log.log && rimraf ./DATA-CREDITS/log-tx.log && rimraf ./DATA-CREDITS/WALLET && rimraf ./DATA-CREDITS/Update",
+    "delete": "rimraf ./DATA-CREDITS/DB && rimraf ./DATA-CREDITS/jinn-nodes-8.lst && rimraf ./DATA-CREDITS/log.log && rimraf ./DATA-CREDITS/log-tx.log && rimraf ./DATA-CREDITS/WALLET && rimraf ./DATA-CREDITS/Update && rimraf ./DATA-CREDITS/err.log",
     "pm2 save": "pm2 save",
     "pm2:monit": "pm2 monit",
     "pm2:logs": "pm2 logs --out --lines 200",

@@ -51,7 +51,7 @@
     "RESTART_PERIOD_SEC": 0,
     "WATCHDOG_DEV": 0,
     "NOT_RUN": 0,
-    "DELTA_CURRENT_TIME": -2219,
+    "DELTA_CURRENT_TIME": -2167,
     "USE_EDIT_ACCOUNT": true,
     "USE_BLOCK_SEND_TX": true,
     "ADD_EXTRA_SLOTS": 0
