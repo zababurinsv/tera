@@ -23,7 +23,10 @@
     "test:stop": "cd SourceJinn && pm2 stop run-jinn.js  --name node-T",
     "test:restart": "cd SourceJinn && pm2 restart run-jinn.js  --name node-T",
     "test:delete": "cd SourceJinn && pm2 delete run-jinn.js  --name node-T",
-    "pm2 save": "pm2 save"
+    "pm2 save": "pm2 save",
+    "pm2:monit": "pm2 monit",
+    "pm2:logs": "pm2 logs --out --lines 200",
+    "pm2:list": "pm2 list"
   },
   "author": "progr76@gmail.com",
   "license": "MIT"

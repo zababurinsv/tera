@@ -271,3 +271,9 @@ pm2 start run-jinn.js
 * [Эта же страница на русском](https://gitlab.com/terafoundation/tera2/-/tree/master/Doc/Rus)
 * [Первое интервью с командой - 2021](https://www.youtube.com/watch?v=aA_p9cTvnn8)
 
+
+
+### Заментки
+
+Кажется точка обращения записи чтения это jinn/tera/db/tera-db-file.js, 
+Более высокоуровнево - это модули в папке jinn/src/db
