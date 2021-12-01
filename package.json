@@ -13,6 +13,8 @@
     "cryptomessenger"
   ],
   "scripts": {
+    "elite:run": "redrun -s -c kill:9001 delete elite:test",
+    "elite:stop": "redrun -s -c kill:9001 delete",
     "main:node": "cd Source && node set httpport:8080 password:somePassword",
     "main:run": "cd Source && pm2 start run-node.js --name node-W",
     "main:stop": "cd Source && pm2 stop run-node.js --name node-W",
@@ -23,11 +25,12 @@
     "test:stop": "cd SourceJinn && pm2 stop run-jinn.js  --name node-T",
     "test:restart": "cd SourceJinn && pm2 restart run-jinn.js  --name node-T",
     "test:delete": "cd SourceJinn && pm2 delete run-jinn.js  --name node-T",
-    "elite:run": "cd SourceCredits && pm2 start run-node.js --name node-C",
-    "elite:stop": "cd SourceCredits && pm2 stop run-node.js --name node-C",
-    "elite:restart": "cd SourceCredits && pm2 restart run-node.js --name node-C",
-    "elite:delete": "cd SourceCredits && pm2 delete run-node.js --name node-C",
-    "elite:test": "cd SourceCredits && node run-node.js --name node-C",
+    "credits:run": "cd SourceCredits && pm2 start run-node.js --name node-C",
+    "credits:stop": "cd SourceCredits && pm2 stop run-node.js --name node-C",
+    "credits:restart": "cd SourceCredits && pm2 restart run-node.js --name node-C",
+    "credits:delete": "cd SourceCredits && pm2 delete run-node.js --name node-C",
+    "elite:test": " cd SourceCredits && node run-node.js --name node-C",
+    "delete": "rimraf ./DATA-CREDITS/err.log && rimraf ./DATA-CREDITS/DB && rimraf ./DATA-CREDITS/jinn-nodes-8.lst && rimraf ./DATA-CREDITS/log.log && rimraf ./DATA-CREDITS/log-tx.log && rimraf ./DATA-CREDITS/WALLET && rimraf ./DATA-CREDITS/Update",
     "pm2 save": "pm2 save",
     "pm2:monit": "pm2 monit",
     "pm2:logs": "pm2 logs --out --lines 200",
@@ -36,5 +39,9 @@
     "kill:9001": "kill $(lsof -t -i:9001)"
   },
   "author": "progr76@gmail.com",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "redrun": "^9.0.1",
+    "rimraf": "^3.0.2"
+  }
 }
