@@ -16,14 +16,32 @@ const JINN_VERSION_DB = 3;
 const NUM_FOR_MAX_BLOCK =  - 1;
 
 
-global.DB_HEADER_FORMAT = {VersionDB:"byte", BlockNum:"uint", PrevPosition:"uint", TreeHash:"hash", MinerHash:"hash", PrevSumPow:"uint",
-    PrevSumHash:"hash", TxCount:"uint16", TxPosition:"uint", HeadPosH:"uint", HeadPosB:"uint", PrevBlockPosition:"uint", Reserve:"byte",
-    TestZero:"arr8", };
+global.DB_HEADER_FORMAT = {
+    VersionDB:"byte",
+    BlockNum:"uint",
+    PrevPosition:"uint",
+    TreeHash:"hash",
+    MinerHash:"hash",
+    PrevSumPow:"uint",
+    PrevSumHash:"hash",
+    TxCount:"uint16",
+    TxPosition:"uint",
+    HeadPosH:"uint",
+    HeadPosB:"uint",
+    PrevBlockPosition:"uint",
+    Reserve:"byte",
+    TestZero:"arr8",
+};
 
 if(global.Init_DB_HEADER_FORMAT)
     global.Init_DB_HEADER_FORMAT(DB_HEADER_FORMAT);
 
-const BODY_FORMAT = {PrevPosition:"uint", PrevCountTx:"uint16", TxArr:[{body:"tr"}], TxIndex:["uint16"]};
+const BODY_FORMAT = {
+    PrevPosition:"uint",
+    PrevCountTx:"uint16",
+    TxArr:[{body:"tr"}],
+    TxIndex:["uint16"]
+};
 
 class CDBChain
 {

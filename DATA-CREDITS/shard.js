@@ -1,10 +1,12 @@
-//shard CREDITS
+
 'use strict';
 
-global.NETWORK="MAIN-JINN";
+global.NETWORK="MAIN_JINN";
 global.SHARD_NAME="CREDIT";
-global.START_NETWORK_DATE=1638398567502;
-global.CONSENSUS_PERIOD_TIME=12000;//ms
+global.START_NETWORK_DATE=1638474045310;
+global.CONSENSUS_PERIOD_TIME=3000;//ms
+
+
 
 global.START_HISTORY=1;
 global.TEST_MINING=1;
@@ -15,25 +17,26 @@ global.START_MINING=10;
 DevKeysInit();
 
 //начальные ip нод
-SHARD_PARAMS.SeedServerArr=[{
-    ip: "127.0.0.1",
-    port: 30000,
-    Score:10000000,
-    System:1
-}];
+SHARD_PARAMS.SeedServerArr=[{ip: "127.0.0.1", port: 3000, Score:10000000,System:1}];
 
-SHARD_PARAMS.GenesisAccountCreate=function() {
+
+
+
+SHARD_PARAMS.GenesisAccountCreate=function()
+{
     ACCOUNTS.DBStateWriteInner({Num:0,PubKey:[],Value:{BlockNum:1,SumCOIN:1*TOTAL_SUPPLY_TERA},Name:"System"},1);
-    ACCOUNTS.DBStateWriteInner({Num:1,PubKey:Buffer.from("026A04AB98D9E4774AD806E302DDDEB63BEA16B5CB5F223EE77478E861BB583EB3","hex"),Value:{BlockNum:1,SumCOIN:0},Name:"Development"},1);
+    ACCOUNTS.DBStateWriteInner({Num:1,PubKey:Buffer.from("025C5641EA56D3B7C4EB2D3C98214D687C9066801465325759FB853E36DA93026F","hex"),Value:{BlockNum:1,SumCOIN:1000000},Name:"Development"},1);
 };
 
 
-SHARD_PARAMS.GenesisSmartCreate=function() {
+SHARD_PARAMS.GenesisSmartCreate=function()
+{
     SMARTS.DBSmartWrite({Num:0,ShortName:SHARD_NAME,Name:SHARD_NAME,Description:SHARD_NAME,BlockNum:0,TokenGenerate:1,Account:0,Category1:0});
 };
 
 
-SHARD_PARAMS.DoCoinBaseTR=function(Block) {
+SHARD_PARAMS.DoCoinBaseTR=function(Block)
+{
     if(Block.BlockNum<global.START_MINING)
         return;
 
@@ -49,18 +52,14 @@ SHARD_PARAMS.DoCoinBaseTR=function(Block) {
     }
 };
 
-global.PRICE_DAO=function (BlockNum) {
-    return {
-            NewAccount:1,
-            NewSmart:10,
-            NewTokenSmart:100,
-            NewShard:1000
-        };
-    }
+global.PRICE_DAO=function (BlockNum)
+{
+    return {NewAccount:1, NewSmart:10, NewTokenSmart:100, NewShard:1000};
 }
 
 
-function DevKeysInit() {
+function DevKeysInit()
+{
     //for genesis block create
     var PubKey=Buffer.from("026A04AB98D9E4774AD806E302DDDEB63BEA16B5CB5F223EE77478E861BB583EB3","hex");
 
@@ -73,4 +72,3 @@ function DevKeysInit() {
     global.DEVELOP_PUB_KEY_ARR=[Buffer.from("022E80AA78BC07C72781FAC12488096F0BFA7B4F48FBAB0F2A92E208D1EE3654DF","hex")];
 
 }
-

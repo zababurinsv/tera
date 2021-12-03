@@ -26,8 +26,15 @@ function Init(Engine)
         StartLoadVersionNum:0};
     
     Engine.VERSION_SEND = {VersionNum:"uint"};
-    Engine.VERSION_RET = {BlockNum:"uint", addrArr:"arr32", LevelUpdate:"byte", BlockPeriod:"uint", VersionNum:"uint", Hash:"hash",
-        Sign:"arr64"};
+    Engine.VERSION_RET = {
+        BlockNum:"uint",
+        addrArr:"arr32",
+        LevelUpdate:"byte",
+        BlockPeriod:"uint",
+        VersionNum:"uint",
+        Hash:"hash",
+        Sign:"arr64"
+    };
     
     Engine.ProcessNewVersionNum = function (Child,CodeVersionNum)
     {
